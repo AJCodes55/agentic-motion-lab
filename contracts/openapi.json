@@ -1,0 +1,819 @@
+{
+  "components": {
+    "schemas": {
+      "AnalysisRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "command": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Command",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "station_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Station Id"
+          }
+        },
+        "required": [
+          "period",
+          "command"
+        ],
+        "title": "AnalysisRequest",
+        "type": "object"
+      },
+      "ApiError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "HTTP_ERROR",
+              "VALIDATION_ERROR",
+              "INTERNAL_ERROR",
+              "ERR_SCHEMA_MISMATCH",
+              "ERR_UNSUPPORTED_INTENT",
+              "ERR_TOOL_EXECUTION",
+              "ERR_UNGROUNDED_CLAIM",
+              "ERR_BUDGET_EXCEEDED"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "enum": [
+                  "baseline",
+                  "routing",
+                  "planning",
+                  "execution",
+                  "validation",
+                  "rendering"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "validation_reason": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Reason"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "request_id"
+        ],
+        "title": "ApiError",
+        "type": "object"
+      },
+      "ApiResponse_HealthData_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HealthData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "error"
+        ],
+        "title": "ApiResponse[HealthData]",
+        "type": "object"
+      },
+      "Claim": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "Member",
+                  "Casual",
+                  "Classic",
+                  "E-bike",
+                  "Unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Category"
+          },
+          "claim_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Claim Id",
+            "type": "string"
+          },
+          "comparison_period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetReference"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Datasets",
+            "type": "array"
+          },
+          "dimension": {
+            "anyOf": [
+              {
+                "enum": [
+                  "rideable_type",
+                  "member_casual"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Dimension"
+          },
+          "eligibility_reason": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Eligibility Reason"
+          },
+          "eligible": {
+            "title": "Eligible",
+            "type": "boolean"
+          },
+          "entity_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "exact_tool_value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Tool Value"
+          },
+          "metric_type": {
+            "enum": [
+              "trip_count",
+              "share",
+              "average_duration_minutes",
+              "absolute_change",
+              "percentage_change",
+              "contribution",
+              "current_volume"
+            ],
+            "title": "Metric Type",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Run Id",
+            "type": "string"
+          },
+          "tool_call_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Tool Call Id",
+            "type": "string"
+          },
+          "transition": {
+            "enum": [
+              "increase",
+              "decrease",
+              "unchanged",
+              "standalone"
+            ],
+            "title": "Transition",
+            "type": "string"
+          },
+          "unit": {
+            "enum": [
+              "trips",
+              "percent",
+              "minutes",
+              "percentage_points"
+            ],
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "metric_type",
+          "period",
+          "unit",
+          "exact_tool_value",
+          "eligible",
+          "claim_id",
+          "tool_call_id",
+          "run_id",
+          "datasets",
+          "transition"
+        ],
+        "title": "Claim",
+        "type": "object"
+      },
+      "DatasetReference": {
+        "additionalProperties": false,
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "version_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "title": "Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "version_id",
+          "sha256"
+        ],
+        "title": "DatasetReference",
+        "type": "object"
+      },
+      "EvidenceValue": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "Member",
+                  "Casual",
+                  "Classic",
+                  "E-bike",
+                  "Unknown"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Category"
+          },
+          "comparison_period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "dimension": {
+            "anyOf": [
+              {
+                "enum": [
+                  "rideable_type",
+                  "member_casual"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Dimension"
+          },
+          "eligibility_reason": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Eligibility Reason"
+          },
+          "eligible": {
+            "title": "Eligible",
+            "type": "boolean"
+          },
+          "entity_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Entity Id",
+            "type": "string"
+          },
+          "exact_tool_value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exact Tool Value"
+          },
+          "metric_type": {
+            "enum": [
+              "trip_count",
+              "share",
+              "average_duration_minutes",
+              "absolute_change",
+              "percentage_change",
+              "contribution",
+              "current_volume"
+            ],
+            "title": "Metric Type",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "unit": {
+            "enum": [
+              "trips",
+              "percent",
+              "minutes",
+              "percentage_points"
+            ],
+            "title": "Unit",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entity_id",
+          "metric_type",
+          "period",
+          "unit",
+          "exact_tool_value",
+          "eligible"
+        ],
+        "title": "EvidenceValue",
+        "type": "object"
+      },
+      "HealthData": {
+        "additionalProperties": false,
+        "properties": {
+          "service": {
+            "const": "citibike-analytics",
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "service"
+        ],
+        "title": "HealthData",
+        "type": "object"
+      },
+      "Period": {
+        "additionalProperties": false,
+        "properties": {
+          "month": {
+            "maximum": 12,
+            "minimum": 1,
+            "title": "Month",
+            "type": "integer"
+          },
+          "year": {
+            "maximum": 9999,
+            "minimum": 1,
+            "title": "Year",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "year",
+          "month"
+        ],
+        "title": "Period",
+        "type": "object"
+      },
+      "QualitySummary": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicate_rows": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Duplicate Rows",
+            "type": "integer"
+          },
+          "excluded_rows": {
+            "minimum": 0,
+            "title": "Excluded Rows",
+            "type": "integer"
+          },
+          "invalid_duration_rows": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Invalid Duration Rows",
+            "type": "integer"
+          },
+          "invalid_timestamp_rows": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Invalid Timestamp Rows",
+            "type": "integer"
+          },
+          "missing_station_rows": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Missing Station Rows",
+            "type": "integer"
+          },
+          "month_threshold_denominator": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Month Threshold Denominator",
+            "type": "integer"
+          },
+          "outside_month_rows": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Outside Month Rows",
+            "type": "integer"
+          },
+          "per_csv_parsed_counts": {
+            "default": [],
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "title": "Per Csv Parsed Counts",
+            "type": "array"
+          },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rejection Reason"
+          },
+          "source_filenames": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Source Filenames",
+            "type": "array"
+          },
+          "source_rows": {
+            "minimum": 0,
+            "title": "Source Rows",
+            "type": "integer"
+          },
+          "station_threshold_denominator": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Station Threshold Denominator",
+            "type": "integer"
+          },
+          "unknown_bike_rows": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Unknown Bike Rows",
+            "type": "integer"
+          },
+          "unknown_member_rows": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Unknown Member Rows",
+            "type": "integer"
+          },
+          "valid_rows": {
+            "minimum": 0,
+            "title": "Valid Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source_rows",
+          "valid_rows",
+          "excluded_rows"
+        ],
+        "title": "QualitySummary",
+        "type": "object"
+      },
+      "ToolArguments": {
+        "additionalProperties": false,
+        "properties": {
+          "comparison_period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "current_period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "dimension": {
+            "anyOf": [
+              {
+                "enum": [
+                  "rideable_type",
+                  "member_casual"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Dimension"
+          },
+          "station_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Station Id"
+          },
+          "top_n": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Top N"
+          }
+        },
+        "title": "ToolArguments",
+        "type": "object"
+      },
+      "ToolResult": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments": {
+            "$ref": "#/components/schemas/ToolArguments"
+          },
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetReference"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Datasets",
+            "type": "array"
+          },
+          "run_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Run Id",
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "baseline",
+              "routing",
+              "planning",
+              "execution",
+              "validation",
+              "rendering"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "success",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tool_call_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Tool Call Id",
+            "type": "string"
+          },
+          "tool_name": {
+            "enum": [
+              "kpi_summary",
+              "compare_periods",
+              "daily_trend",
+              "station_analysis",
+              "station_movers",
+              "analyze_station_variance",
+              "make_chart",
+              "get_available_periods",
+              "retrieve_context",
+              "generate_standard_dashboard",
+              "validate_and_load_file"
+            ],
+            "title": "Tool Name",
+            "type": "string"
+          },
+          "validation_reason": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Validation Reason"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceValue"
+            },
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run_id",
+          "tool_call_id",
+          "stage",
+          "tool_name",
+          "status",
+          "arguments",
+          "datasets",
+          "values"
+        ],
+        "title": "ToolResult",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Monthly Mobility API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_HealthData_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    }
+  }
+}

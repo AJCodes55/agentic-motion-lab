@@ -1,0 +1,198 @@
+{
+  "verified_on": "2026-10-18",
+  "monthly": {
+    "202601": {
+      "quality": {
+        "parsed": 40044,
+        "invalid_timestamps": 0,
+        "month_denominator": 40044,
+        "out_of_month": 13,
+        "duplicates": 0,
+        "station_denominator": 40031,
+        "missing_stations": 825,
+        "duration_exclusions": 8,
+        "final_valid": 39198
+      },
+      "categories": {
+        "member_casual": {
+          "member": 33882,
+          "casual": 5316
+        },
+        "rideable_type": {
+          "electric_bike": 26759,
+          "classic_bike": 12439
+        }
+      },
+      "sql_stage_counts": {
+        "timestamp_valid": 40044,
+        "month_valid": 40031,
+        "dedup": 40031,
+        "stations_valid": 39206,
+        "final": 39198
+      },
+      "independent_check": "Python datetime pipeline and SQLite date/window-free grouping filters agree on every retained source row index",
+      "daily": {
+        "2026-01-01": 660,
+        "2026-01-02": 975,
+        "2026-01-03": 1088,
+        "2026-01-04": 1061,
+        "2026-01-05": 1667,
+        "2026-01-06": 1897,
+        "2026-01-07": 2060,
+        "2026-01-08": 2317,
+        "2026-01-09": 2034,
+        "2026-01-10": 1177,
+        "2026-01-11": 1491,
+        "2026-01-12": 1965,
+        "2026-01-13": 2381,
+        "2026-01-14": 2379,
+        "2026-01-15": 2052,
+        "2026-01-16": 1891,
+        "2026-01-17": 896,
+        "2026-01-18": 552,
+        "2026-01-19": 901,
+        "2026-01-20": 1284,
+        "2026-01-21": 1551,
+        "2026-01-22": 1982,
+        "2026-01-23": 1850,
+        "2026-01-24": 1040,
+        "2026-01-25": 68,
+        "2026-01-26": 110,
+        "2026-01-27": 296,
+        "2026-01-28": 403,
+        "2026-01-29": 391,
+        "2026-01-30": 396,
+        "2026-01-31": 383
+      },
+      "duration_milliseconds_sum": 22432502871,
+      "average_duration_minutes_fraction": {
+        "numerator": 22432502871,
+        "denominator": 2351880000
+      }
+    },
+    "202602": {
+      "quality": {
+        "parsed": 25809,
+        "invalid_timestamps": 0,
+        "month_denominator": 25809,
+        "out_of_month": 6,
+        "duplicates": 0,
+        "station_denominator": 25803,
+        "missing_stations": 415,
+        "duration_exclusions": 1,
+        "final_valid": 25387
+      },
+      "categories": {
+        "member_casual": {
+          "member": 21917,
+          "casual": 3470
+        },
+        "rideable_type": {
+          "electric_bike": 17210,
+          "classic_bike": 8177
+        }
+      },
+      "sql_stage_counts": {
+        "timestamp_valid": 25809,
+        "month_valid": 25803,
+        "dedup": 25803,
+        "stations_valid": 25388,
+        "final": 25387
+      },
+      "independent_check": "Python datetime pipeline and SQLite date/window-free grouping filters agree on every retained source row index",
+      "daily": {
+        "2026-02-01": 315,
+        "2026-02-02": 686,
+        "2026-02-03": 805,
+        "2026-02-04": 968,
+        "2026-02-05": 981,
+        "2026-02-06": 955,
+        "2026-02-07": 402,
+        "2026-02-08": 344,
+        "2026-02-09": 836,
+        "2026-02-10": 1085,
+        "2026-02-11": 1209,
+        "2026-02-12": 1181,
+        "2026-02-13": 1256,
+        "2026-02-14": 1026,
+        "2026-02-15": 973,
+        "2026-02-16": 1001,
+        "2026-02-17": 1448,
+        "2026-02-18": 1286,
+        "2026-02-19": 1651,
+        "2026-02-20": 860,
+        "2026-02-21": 1605,
+        "2026-02-22": 415,
+        "2026-02-24": 170,
+        "2026-02-25": 410,
+        "2026-02-26": 880,
+        "2026-02-27": 1228,
+        "2026-02-28": 1411
+      },
+      "duration_milliseconds_sum": 15304861752,
+      "average_duration_minutes_fraction": {
+        "numerator": 15304861752,
+        "denominator": 1523220000
+      }
+    }
+  },
+  "mandatory_investigation_candidate": {
+    "station_id": "HB106",
+    "name": "River St & Newark St",
+    "prior": 1584,
+    "current": 866,
+    "delta": -718,
+    "percentage_change": -45.32828282828283,
+    "qualifying_station_count": 57,
+    "breakdowns": {
+      "member_casual": [
+        {
+          "category": "casual",
+          "prior": 222,
+          "current": 115,
+          "delta": -107,
+          "eligible": true,
+          "contribution_numerator": -10700,
+          "contribution_denominator": -718
+        },
+        {
+          "category": "member",
+          "prior": 1362,
+          "current": 751,
+          "delta": -611,
+          "eligible": true,
+          "contribution_numerator": -61100,
+          "contribution_denominator": -718
+        }
+      ],
+      "rideable_type": [
+        {
+          "category": "classic_bike",
+          "prior": 404,
+          "current": 201,
+          "delta": -203,
+          "eligible": true,
+          "contribution_numerator": -20300,
+          "contribution_denominator": -718
+        },
+        {
+          "category": "electric_bike",
+          "prior": 1180,
+          "current": 665,
+          "delta": -515,
+          "eligible": true,
+          "contribution_numerator": -51500,
+          "contribution_denominator": -718
+        }
+      ]
+    },
+    "independent_sql_check": {
+      "station_id": "HB106",
+      "prior": 1584,
+      "current": 866,
+      "delta": -718,
+      "matched": true
+    }
+  },
+  "limits": "Independent computations over identical sources, not an external completeness certification. SQLite duration check rounds to source millisecond precision; Python uses full parsed precision. No production ingestion or stored dataset activation."
+}

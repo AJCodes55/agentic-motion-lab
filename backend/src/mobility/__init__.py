@@ -1,0 +1,1 @@
+"""Monthly mobility reporting service."""

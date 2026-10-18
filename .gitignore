@@ -1,0 +1,33 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+**/.venv/
+**/__pycache__/
+**/*.egg-info/
+**/.pytest_cache/
+**/.coverage
+**/coverage.xml
+**/htmlcov/
+**/node_modules/
+**/.next/
+**/coverage/
+**/test-results/
+**/playwright-report/
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Local assistant configuration and editor state
+/.agents/
+/.codex/
+/.vscode/
+/.idea/
+
+# Downloadable source datasets; checksums and URLs are documented instead
+/JC-*-citibike-tripdata.csv
+/JC-*-citibike-tripdata*.zip
+
+# Superseded proposal material and private conversation history
+/Agentic AI Project Proposal - Chat Log.md
+/Project Proposal - Citi Bike Reporting Workflow.docx
+/agentic_executive_mobility_dashboard.md

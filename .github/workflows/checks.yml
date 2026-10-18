@@ -1,0 +1,56 @@
+name: Application checks
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python -m pip install --no-deps -e .
+      - name: Backend tests and coverage
+        working-directory: backend
+        run: python -m pytest
+      - name: Check backend contract snapshot
+        run: |
+          python -m mobility.export_openapi > /tmp/openapi.json
+          diff -u contracts/openapi.json /tmp/openapi.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Check generated frontend contracts
+        working-directory: frontend
+        run: |
+          cp src/generated/api.ts /tmp/api.ts
+          npm run contracts:generate
+          diff -u /tmp/api.ts src/generated/api.ts
+      - name: Frontend checks
+        working-directory: frontend
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run test:coverage
+          npm run build
+      - name: Install browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        working-directory: frontend
+        env:
+          PYTHON: python
+        run: npm run test:e2e
