@@ -27,7 +27,8 @@ Update this file after every phase and every important step: implementation chan
 | 2026-10-18 | Verified foundation | Backend: 17 tests, 99.33% coverage. Frontend: 11 tests, 100% line coverage, 90.9% branch coverage. Two browser tests, lint, typecheck, and production build passed. Code/security reviews completed. |
 | 2026-10-18 | Resolved build and logging issues | Selected supported webpack mode after Turbopack IPC failures; verified actual structured-log emission and disabled unredacted server access logs in documented launch commands. |
 | 2026-10-18 | Established live documentation | This summary tracks progress; [decisions.md](decisions.md) is the project-wide decision record. |
-| 2026-10-18 | Prepared initial GitHub publication | Target: `AJCodes55/agentic-motion-lab`, verified empty before publication. User approved the exclusions. Ignore rules retain 42 application/documentation files, under 0.5 MB. Pattern scan found no matching credentials or local absolute user paths. Python dependency audit found no known vulnerabilities; production npm audit is clean and the known development advisory remains documented. Type checking passes in a clean approved-file copy. Commit/push in progress. |
+| 2026-10-18 | Prepared initial GitHub publication | Target: `AJCodes55/agentic-motion-lab`, verified empty before publication. User approved the exclusions. Ignore rules retain 42 application/documentation files, under 0.5 MB. Pattern scan found no matching credentials or local absolute user paths. Python dependency audit found no known vulnerabilities; production npm audit is clean and the known development advisory remains documented. Type checking passes in a clean approved-file copy. |
+| 2026-10-18 | Committed and pushed approved files | Initial commit [`ff00165`](https://github.com/AJCodes55/agentic-motion-lab/commit/ff0016573e907aaf3c3fa94b54d4ba38b685b33f) was pushed to `main`; local branch tracks `origin/main`. All 42 approved files are published. GitHub [automated checks](https://github.com/AJCodes55/agentic-motion-lab/actions/runs/39163539007) started and were in progress at this update. This documentation follow-up records the completed publication. |
 
 ## Remaining Work and Limits
 
@@ -35,8 +36,8 @@ Update this file after every phase and every important step: implementation chan
 - Finalize tied-contribution wording/contracts before Phase 3/4; allocate individual analytics cases and obtain challenging contributions from each curator during evaluation preparation.
 - Resolve hosting/access controls, resource limits, recovery, and retention details before the affected implementation or exposure.
 - Track the development dependency advisory described in [Phase 1](phase-1.md). Production npm audit reported zero vulnerabilities at the recorded check; full development audit was not clean.
-- CI is configured but has not run remotely. No hosted deployment has occurred; local test servers were stopped after verification.
+- GitHub CI has started; its result is not yet recorded as passing. No hosted deployment has occurred; local test servers were stopped after verification.
 
 ## Next Step
 
-Immediate: commit and push the user-approved files to GitHub, verify the remote commit, and record the result here. Following publication, Phase 2 covers ingestion, cleaning, and safe versioned storage. This summary does not independently authorize a new implementation phase.
+Immediate: check GitHub CI results and address any failures. Next implementation phase: Phase 2 ingestion, cleaning, and safe versioned storage. This summary does not independently authorize a new implementation phase.
