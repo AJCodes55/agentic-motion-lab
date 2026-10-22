@@ -46,6 +46,7 @@ Update this file after every phase and every important step: implementation chan
 | 2026-10-19 | Configured university gateway | User supplied `https://api.portkey.ai/v1` and `@30875-fall26-openai/gpt-5-nano` from assignment code. Backend configuration, example environment, tests, SRS and plan now reflect this route (D19). Key value was preserved locally and not printed. |
 | 2026-10-21 | Verified live Phase 4 run | University gateway run completed on verified public January/February data: HB106, 1,584 → 866 starts, both variance dimensions, grounded Member wording, and matching archived report. Four model and three successful tool calls; 3,740 input and 413 output tokens. Backend: 156 tests, 94.56% coverage. [Evidence](phase-4.md). |
 | 2026-10-22 | Completed Phase 4 browser checks | All four browser tests passed sequentially on isolated ports. One separate live UI request reached the university gateway and displayed HB106, the variance follow-up, and Member wording. A concurrent browser run had one ingestion UI timing failure; its isolated and sequential reruns passed. [Evidence](phase-4.md). |
+| 2026-10-22 | Closed parallel browser failure | Reproduced the ingestion test timeout and traced it to Next.js development Fast Refresh reloading the page mid-test. The E2E harness now builds/serves the production app and supports validated isolated ports. Four three-worker runs passed, 16/16 browser tests. [Evidence](phase-4.md). |
 
 ## Remaining Work and Limits
 
