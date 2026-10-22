@@ -1,17 +1,18 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { beforeEach, afterEach, expect, test, vi } from 'vitest';
 import Dashboard from '../components/dashboard';
-beforeEach(() => vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true, data: { status: 'ok', service: 'citibike-analytics' }, error: null }) })));
+const healthy=async()=>({ok:true,json:async()=>({success:true,data:{status:'ok',service:'citibike-analytics'},error:null})} as Response);
+beforeEach(() => vi.stubGlobal('fetch', vi.fn().mockImplementation(healthy)));
 afterEach(() => vi.unstubAllGlobals());
 test('checks backend without inventing datasets or reports', async () => {
  render(<Dashboard />);
  expect(await screen.findByText('Backend connected')).toBeInTheDocument();
  expect(screen.getByLabelText('Reporting month')).toHaveValue('');
- expect(screen.getByRole('button', {name:'Generate report'})).toBeDisabled();
+ expect(screen.getByRole('button', {name:'Generate baseline report'})).toBeDisabled();
  expect(screen.getByText('No report yet.')).toBeInTheDocument();
 });
 test('shows clear unavailable error and can retry', async () => {
- vi.mocked(fetch).mockRejectedValueOnce(new Error('offline'));
+ let failed=false;vi.mocked(fetch).mockImplementation(async(url)=>{if(url==='/api/health'&&!failed){failed=true;throw new Error('offline');}return healthy();});
  render(<Dashboard />);
  expect(await screen.findByText('Backend unavailable. Check the service and retry.')).toBeInTheDocument();
  fireEvent.click(screen.getByRole('button',{name:'Check connection'}));
@@ -45,17 +46,17 @@ test('accepts drag and drop and rejects an empty selection', async () => {
  await screen.findByText('Backend connected');
 });
 test.each(['http','shape'])('shows unavailable for %s response',async(mode)=>{
- vi.mocked(fetch).mockResolvedValueOnce({ok:mode!=='http',json:async()=>({success:false})} as Response);
+ vi.mocked(fetch).mockImplementation(async(url)=>url==='/api/health'?{ok:mode!=='http',json:async()=>({success:false})} as Response:healthy());
  render(<Dashboard />);
  expect(await screen.findByText('Backend unavailable. Check the service and retry.')).toBeInTheDocument();
 });
 test('aborts an in-flight check when unmounted',async()=>{
- vi.mocked(fetch).mockImplementationOnce((_url, options)=>new Promise((_resolve,reject)=>{
+ vi.mocked(fetch).mockImplementation((_url, options)=>new Promise((_resolve,reject)=>{
   options?.signal?.addEventListener('abort',()=>reject(new Error('aborted')));
  }));
  const {unmount}=render(<Dashboard />);
- await waitFor(()=>expect(fetch).toHaveBeenCalled());
- const signal=vi.mocked(fetch).mock.calls[0][1]?.signal;
+ await waitFor(()=>expect(vi.mocked(fetch).mock.calls.some(call=>call[0]==='/api/health')).toBe(true));
+ const signal=vi.mocked(fetch).mock.calls.find(call=>call[0]==='/api/health')?.[1]?.signal;
  unmount();
  expect(signal?.aborted).toBe(true);
 });

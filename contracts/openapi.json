@@ -1,6 +1,113 @@
 {
   "components": {
     "schemas": {
+      "AgentRun": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Id"
+          },
+          "counters": {
+            "$ref": "#/components/schemas/RunCounters"
+          },
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetReference"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "report_html": {
+            "title": "Report Html",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageStatus"
+            },
+            "title": "Stages",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "complete",
+              "partial",
+              "refused"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "trace": {
+            "items": {
+              "$ref": "#/components/schemas/ToolResult"
+            },
+            "title": "Trace",
+            "type": "array"
+          },
+          "validation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Reason"
+          },
+          "warning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Warning"
+          }
+        },
+        "required": [
+          "run_id",
+          "status",
+          "period",
+          "datasets",
+          "report_html",
+          "warning",
+          "error_code",
+          "stages",
+          "trace",
+          "counters"
+        ],
+        "title": "AgentRun",
+        "type": "object"
+      },
       "AnalysisRequest": {
         "additionalProperties": false,
         "properties": {
@@ -16,7 +123,6 @@
           "station_id": {
             "anyOf": [
               {
-                "maxLength": 128,
                 "minLength": 1,
                 "type": "string"
               },
@@ -47,7 +153,11 @@
               "ERR_UNSUPPORTED_INTENT",
               "ERR_TOOL_EXECUTION",
               "ERR_UNGROUNDED_CLAIM",
-              "ERR_BUDGET_EXCEEDED"
+              "ERR_BUDGET_EXCEEDED",
+              "ERR_UPLOAD_LIMIT",
+              "ERR_INGESTION_BUSY",
+              "ERR_SOURCE_UNAVAILABLE",
+              "ERR_UPLOAD_TIMEOUT"
             ],
             "title": "Code",
             "type": "string"
@@ -111,6 +221,114 @@
         "title": "ApiError",
         "type": "object"
       },
+      "ApiResponse_AgentRun_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AgentRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "error"
+        ],
+        "title": "ApiResponse[AgentRun]",
+        "type": "object"
+      },
+      "ApiResponse_AvailablePeriods_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AvailablePeriods"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "error"
+        ],
+        "title": "ApiResponse[AvailablePeriods]",
+        "type": "object"
+      },
+      "ApiResponse_BaselineReport_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BaselineReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "error"
+        ],
+        "title": "ApiResponse[BaselineReport]",
+        "type": "object"
+      },
       "ApiResponse_HealthData_": {
         "additionalProperties": false,
         "properties": {
@@ -145,6 +363,136 @@
           "error"
         ],
         "title": "ApiResponse[HealthData]",
+        "type": "object"
+      },
+      "ApiResponse_IngestionBatch_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IngestionBatch"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "error"
+        ],
+        "title": "ApiResponse[IngestionBatch]",
+        "type": "object"
+      },
+      "AvailablePeriods": {
+        "additionalProperties": false,
+        "properties": {
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetReference"
+            },
+            "title": "Periods",
+            "type": "array"
+          }
+        },
+        "required": [
+          "periods"
+        ],
+        "title": "AvailablePeriods",
+        "type": "object"
+      },
+      "BaselineReport": {
+        "additionalProperties": false,
+        "properties": {
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetReference"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ToolResult"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "html": {
+            "title": "Html",
+            "type": "string"
+          },
+          "llm_calls": {
+            "const": 0,
+            "default": 0,
+            "title": "Llm Calls",
+            "type": "integer"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "report_id": {
+            "title": "Report Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_id",
+          "period",
+          "datasets",
+          "html",
+          "evidence"
+        ],
+        "title": "BaselineReport",
+        "type": "object"
+      },
+      "CategoryMapping": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "normalized_value": {
+            "enum": [
+              "Member",
+              "Casual",
+              "Classic",
+              "E-bike",
+              "Unknown"
+            ],
+            "title": "Normalized Value",
+            "type": "string"
+          },
+          "raw_value": {
+            "title": "Raw Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "raw_value",
+          "normalized_value",
+          "count"
+        ],
+        "title": "CategoryMapping",
         "type": "object"
       },
       "Claim": {
@@ -229,7 +577,6 @@
             "type": "boolean"
           },
           "entity_id": {
-            "maxLength": 128,
             "minLength": 1,
             "title": "Entity Id",
             "type": "string"
@@ -407,7 +754,6 @@
             "type": "boolean"
           },
           "entity_id": {
-            "maxLength": 128,
             "minLength": 1,
             "title": "Entity Id",
             "type": "string"
@@ -464,6 +810,32 @@
         "title": "EvidenceValue",
         "type": "object"
       },
+      "FetchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          }
+        },
+        "required": [
+          "period"
+        ],
+        "title": "FetchRequest",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "HealthData": {
         "additionalProperties": false,
         "properties": {
@@ -483,6 +855,94 @@
           "service"
         ],
         "title": "HealthData",
+        "type": "object"
+      },
+      "IngestionBatch": {
+        "additionalProperties": false,
+        "properties": {
+          "ingestion_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Ingestion Id",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MonthIngestionResult"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ingestion_id",
+          "results"
+        ],
+        "title": "IngestionBatch",
+        "type": "object"
+      },
+      "MonthIngestionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DatasetReference"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "message": {
+            "maxLength": 256,
+            "title": "Message",
+            "type": "string"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quality": {
+            "$ref": "#/components/schemas/PublicQualitySummary"
+          },
+          "status": {
+            "enum": [
+              "accepted",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "status",
+          "dataset",
+          "quality",
+          "message"
+        ],
+        "title": "MonthIngestionResult",
         "type": "object"
       },
       "Period": {
@@ -508,9 +968,178 @@
         "title": "Period",
         "type": "object"
       },
+      "PublicQualitySummary": {
+        "additionalProperties": false,
+        "description": "Bounded UI summary; full source dictionaries remain in version metadata.",
+        "properties": {
+          "candidate_rows": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Candidate Rows",
+            "type": "integer"
+          },
+          "duplicate_rows": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Duplicate Rows",
+            "type": "integer"
+          },
+          "excluded_rows": {
+            "minimum": 0.0,
+            "title": "Excluded Rows",
+            "type": "integer"
+          },
+          "invalid_duration_rows": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Invalid Duration Rows",
+            "type": "integer"
+          },
+          "invalid_timestamp_rows": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Invalid Timestamp Rows",
+            "type": "integer"
+          },
+          "missing_station_rows": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Missing Station Rows",
+            "type": "integer"
+          },
+          "month_threshold_denominator": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Month Threshold Denominator",
+            "type": "integer"
+          },
+          "outside_month_rows": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Outside Month Rows",
+            "type": "integer"
+          },
+          "per_csv_parsed_counts": {
+            "default": [],
+            "items": {
+              "minimum": 0.0,
+              "type": "integer"
+            },
+            "title": "Per Csv Parsed Counts",
+            "type": "array"
+          },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason"
+          },
+          "source_filenames": {
+            "default": [],
+            "items": {
+              "maxLength": 256,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Source Filenames",
+            "type": "array"
+          },
+          "source_labels_truncated": {
+            "default": false,
+            "title": "Source Labels Truncated",
+            "type": "boolean"
+          },
+          "source_rows": {
+            "minimum": 0.0,
+            "title": "Source Rows",
+            "type": "integer"
+          },
+          "station_threshold_denominator": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Station Threshold Denominator",
+            "type": "integer"
+          },
+          "status": {
+            "default": "accepted",
+            "enum": [
+              "accepted",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "stopped_stage": {
+            "anyOf": [
+              {
+                "enum": [
+                  "validation",
+                  "timestamps",
+                  "month",
+                  "deduplication",
+                  "stations",
+                  "duration",
+                  "categories",
+                  "reconciliation",
+                  "storage"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stopped Stage"
+          },
+          "unknown_bike_rows": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Unknown Bike Rows",
+            "type": "integer"
+          },
+          "unknown_member_rows": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Unknown Member Rows",
+            "type": "integer"
+          },
+          "valid_rows": {
+            "minimum": 0.0,
+            "title": "Valid Rows",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "source_rows",
+          "valid_rows",
+          "excluded_rows"
+        ],
+        "title": "PublicQualitySummary",
+        "type": "object"
+      },
       "QualitySummary": {
         "additionalProperties": false,
         "properties": {
+          "bike_value_mappings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CategoryMapping"
+            },
+            "title": "Bike Value Mappings",
+            "type": "array"
+          },
+          "candidate_rows": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Candidate Rows",
+            "type": "integer"
+          },
           "duplicate_rows": {
             "default": 0,
             "minimum": 0,
@@ -533,6 +1162,14 @@
             "minimum": 0,
             "title": "Invalid Timestamp Rows",
             "type": "integer"
+          },
+          "member_value_mappings": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/CategoryMapping"
+            },
+            "title": "Member Value Mappings",
+            "type": "array"
           },
           "missing_station_rows": {
             "default": 0,
@@ -593,6 +1230,38 @@
             "title": "Station Threshold Denominator",
             "type": "integer"
           },
+          "status": {
+            "default": "accepted",
+            "enum": [
+              "accepted",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "stopped_stage": {
+            "anyOf": [
+              {
+                "enum": [
+                  "validation",
+                  "timestamps",
+                  "month",
+                  "deduplication",
+                  "stations",
+                  "duration",
+                  "categories",
+                  "reconciliation",
+                  "storage"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Stopped Stage"
+          },
           "unknown_bike_rows": {
             "default": 0,
             "minimum": 0,
@@ -617,6 +1286,71 @@
           "excluded_rows"
         ],
         "title": "QualitySummary",
+        "type": "object"
+      },
+      "RunCounters": {
+        "additionalProperties": false,
+        "properties": {
+          "input_tokens": {
+            "minimum": 0.0,
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "llm_calls": {
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Llm Calls",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "minimum": 0.0,
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "tool_calls": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Tool Calls",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "llm_calls",
+          "tool_calls",
+          "input_tokens",
+          "output_tokens"
+        ],
+        "title": "RunCounters",
+        "type": "object"
+      },
+      "StageStatus": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "enum": [
+              "Data Ingest",
+              "Agent Planning",
+              "Tool Execution",
+              "Final Report Generation"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "complete",
+              "failed",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status"
+        ],
+        "title": "StageStatus",
         "type": "object"
       },
       "ToolArguments": {
@@ -663,7 +1397,7 @@
           "station_id": {
             "anyOf": [
               {
-                "maxLength": 128,
+                "minLength": 1,
                 "type": "string"
               },
               {
@@ -788,6 +1522,46 @@
         ],
         "title": "ToolResult",
         "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
       }
     }
   },
@@ -797,6 +1571,80 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/agent-runs": {
+      "post": {
+        "operationId": "agent_run_agent_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AgentRun_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Agent Run"
+      }
+    },
+    "/agent-runs/stream": {
+      "post": {
+        "operationId": "agent_run_stream_agent_runs_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Agent Run Stream"
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health_health_get",
@@ -813,6 +1661,142 @@
           }
         },
         "summary": "Health"
+      }
+    },
+    "/ingestions": {
+      "post": {
+        "operationId": "ingest_ingestions_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "files": {
+                    "items": {
+                      "format": "binary",
+                      "type": "string"
+                    },
+                    "maxItems": 2,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "files"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_IngestionBatch_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ingest"
+      }
+    },
+    "/ingestions/fetch": {
+      "post": {
+        "operationId": "fetch_ingestions_fetch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FetchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_IngestionBatch_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fetch"
+      }
+    },
+    "/periods": {
+      "get": {
+        "operationId": "periods_periods_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AvailablePeriods_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Periods"
+      }
+    },
+    "/reports": {
+      "post": {
+        "operationId": "report_reports_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FetchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_BaselineReport_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report"
       }
     }
   }

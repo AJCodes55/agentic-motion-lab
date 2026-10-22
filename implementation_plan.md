@@ -2,7 +2,7 @@
 
 **Source:** [Software Requirements Specification](software_requirement_specification_srs.md)
 
-**Status:** Phase 0 started with explicit user authorization. Source inspection and acceptance planning are linked below. Phase 0 preparation is complete; all 44 review cases are user-approved. Phase 1 foundation is implemented and locally verified. Deferred decisions remain gated before affected implementation.
+**Status:** Phase 0 started with explicit user authorization. Source inspection and acceptance planning are linked below. Phase 0 preparation is complete; all 44 review cases are user-approved. Phases 1–3 are implemented and locally verified. Deferred decisions remain gated before affected implementation.
 
 **Live records:** Update [summary](docs/summary.md) after every phase and important step. Update [decisions](docs/decisions.md) after every crucial decision, including changes and superseded choices.
 
@@ -53,11 +53,11 @@ Dataset manifest, decision register, and acceptance checklist in an agreed docum
 
 ### Exit Condition and Progress
 
-No unresolved decision is silently replaced by a coding assumption. User approved all five recommendations on 2026-10-18. Source inspection, initial traceability, and role assignments are complete. Curators are Abhee and Monisha (analytics), and Ashutosh (ingestion and agent behavior). Cleaned totals and the real demo candidate are independently cross-checked and recorded. All 44 assistant-prepared boundary cases are user-reviewed and approved; arithmetic checks pass. Phase 0 preparation is complete. Individual analytics case allocation and contributions by all three curators remain evaluation work; exact tie rendering remains gated before Phase 3/4. Operational choices remain explicitly deferred until their affected phase. Approval is not represented as completed application tests or individual curator authorship.
+No unresolved decision is silently replaced by a coding assumption. User approved all five recommendations on 2026-10-18. Source inspection, initial traceability, and role assignments are complete. Curators are Abhee and Monisha (analytics), and Ashutosh (ingestion and agent behavior). Cleaned totals and the real demo candidate are independently cross-checked and recorded. All 44 assistant-prepared boundary cases are user-reviewed and approved; arithmetic checks pass. Phase 0 preparation is complete. Individual analytics case allocation and contributions by all three curators remain evaluation work; tie wording and structured leaders were approved under D17 when Phase 3 began. Operational choices remain explicitly deferred until their affected phase. Approval is not represented as completed application tests or individual curator authorship.
 
 ## 4. Phase 1 — Barebones Application and Contracts
 
-**Status:** Complete for local foundation scope on 2026-10-18. See [setup and verification](docs/phase-1.md). FastAPI and Next.js communicate; the unavailable-service state and retry are verified. Backend: 17 tests, 99.33% coverage. Frontend: 11 tests, 100% line coverage and 90.9% branch coverage. Two browser tests, lint, typecheck, and production build pass. No ingestion, analytics, or LLM processing is implemented yet. Hosted deployment remains gated on deferred operational decisions.
+**Status:** Complete for local foundation scope on 2026-10-18. See [setup and verification](docs/phase-1.md). FastAPI and Next.js communicate; the unavailable-service state and retry are verified. Backend: 17 tests, 99.33% coverage. Frontend: 11 tests, 100% line coverage and 90.9% branch coverage. Two browser tests, lint, typecheck, and production build pass. At the Phase 1 checkpoint, ingestion, analytics, and LLM processing were not yet implemented. Hosted deployment remains gated on deferred operational decisions.
 
 ### Features and Tasks
 
@@ -77,6 +77,8 @@ Separate frontend and backend applications, with backend modules for ingestion, 
 Both applications start reliably; the frontend reaches the backend and displays a clear service error when unavailable.
 
 ## 5. Phase 2 — Ingestion, Cleaning, and Safe Storage
+
+**Status:** Complete for local development on 2026-10-18. [Verification and usage](docs/phase-2.md): 83 backend tests (94.70% coverage), 29 frontend tests (100% line coverage), three live browser tests, lint/typecheck/build passed. Real January/February uploads activate reconciled versions with 39,198/25,387 valid trips. Rejected corrections preserve active versions. Hosted operational decisions remain deferred.
 
 ### Features and Tasks
 
@@ -101,6 +103,8 @@ A failed upload preserves the previous version; a successful upload activates ma
 
 ## 6. Phase 3 — Deterministic Analytics and Fixed Baseline
 
+**Status:** Complete for local development on 2026-10-18. Five-section zero-LLM dashboard, analytics/variance, immutable archives, and UI verified. Backend: 103 tests, 95.91% coverage; frontend: 35 tests; three browser tests, lint/typecheck/build and reviews passed. Real January/February totals, daily starts and both candidate variance dimensions match independent expectations. D17 resolves ties. See [Phase 3](docs/phase-3.md). Phases 2–3 remain uncommitted; no push requested.
+
 ### Features and Tasks
 
 - Implement the approved KPIs, daily counts, station rankings, period comparisons, and contribution calculations.
@@ -124,14 +128,17 @@ Without any LLM calls, an accepted upload produces a correct, reproducible repor
 
 ## 7. Phase 4 — Agentic MVP with Grounding
 
+**Status:** Implemented and verified locally with an injected deterministic model and a successful live university-gateway run. Existing Phase 2–4 changes remain local and uncommitted. See [Phase 4 evidence](docs/phase-4.md).
+
 ### Features and Tasks
 
-- Integrate OpenAI through Portkey with aggregate-only context.
+- Integrate the university-provided `@30875-fall26-openai/gpt-5-nano` route through its OpenAI-compatible Portkey gateway with aggregate-only context. Keep `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` in the backend environment.
 - Implement routing, available-period lookup, static context retrieval, and plan validation.
+- Restrict model planning to approved tool names and follow-up station choice; bind periods and remaining arguments in Python from pinned snapshots.
 - Build the bounded execution state machine.
 - Let the agent inspect station movers and select the required variance investigation.
 - Validate successful follow-up for the correct station, both periods, and both dimensions.
-- Implement structured claim selection and complete evidence-identity checks.
+- Build exact claim candidates from successful aggregate evidence, restrict model selection to those candidates, and check complete evidence identity.
 - Render narrative exclusively through Python templates and transition enums.
 - Enforce ten tool calls, six LLM calls, and one retry per gate.
 - Implement the exact baseline-only warning states.

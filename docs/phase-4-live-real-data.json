@@ -1,0 +1,27 @@
+{
+  "status": "complete",
+  "error_code": null,
+  "validation_reason": null,
+  "candidate_id": "HB106",
+  "candidate_prior_starts": 1584,
+  "candidate_current_starts": 866,
+  "candidate_delta": -718,
+  "both_breakdowns_present": true,
+  "grounded_member_wording": "Primarily driven by Member.",
+  "tool_sequence": [
+    "get_available_periods",
+    "station_movers",
+    "analyze_station_variance"
+  ],
+  "all_tools_successful": true,
+  "archived_html_matches": true,
+  "counters": {
+    "llm_calls": 4,
+    "tool_calls": 3,
+    "input_tokens": 3740,
+    "output_tokens": 413
+  },
+  "provider": "University OpenAI-compatible gateway",
+  "model": "@30875-fall26-openai/gpt-5-nano",
+  "dataset": "Verified public January and February 2026 Citi Bike Jersey City archives"
+}

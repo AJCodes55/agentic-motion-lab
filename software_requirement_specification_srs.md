@@ -20,7 +20,7 @@ Deliverables include a deterministic baseline, adaptive agent workflow, evaluati
 | Cleaned trip storage | Persistent local Raw Lake; immutable CSV or Parquet versions |
 | Monthly KPI storage | SQLite, versioned with its corresponding trip dataset |
 | Active dataset registry | Master SQLite configuration table; transactional activation |
-| LLM | OpenAI `gpt-5-nano` through Portkey |
+| LLM | University-provided OpenAI-compatible gateway at `https://api.portkey.ai/v1`, model `@30875-fall26-openai/gpt-5-nano`; backend reads `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` from its environment |
 | Contracts | Strict Pydantic inputs and outputs |
 | Reports | Archived static HTML with PNG/SVG assets and template-rendered narrative |
 
@@ -149,7 +149,7 @@ If total change is exactly zero, return null and suppress the contribution sente
 | `80% <= x < 100%` | “Primarily driven by [Segment].” |
 | `< 80%` | “Driven by a mix of factors.” |
 
-If Unknown is the highest contributor, replace standard wording with exactly: **“Driven primarily by unclassified data.”** Null contribution still suppresses the sentence. For equally highest eligible contributions, display all tied categories; explicitly label an unclassified contribution when Unknown ties. The exact tied-category template and claim representation must be finalized before affected implementation; do not arbitrarily select a winner. The single-winner wording above applies when there is one eligible leader.
+If Unknown is the highest contributor, replace standard wording with exactly: **“Driven primarily by unclassified data.”** Null contribution still suppresses the sentence. For equally highest eligible contributions, display all tied categories; explicitly label an unclassified contribution when Unknown ties. For ties, render “Jointly led by [categories] (each [value]%).” Label Unknown as “Unknown (unclassified)” and preserve all leaders as structured category/value entries (D17); do not arbitrarily select a winner. The single-winner wording above applies when there is one eligible leader.
 
 These statements describe mathematical decompositions. Do not claim causes such as weather, closures, or operational changes.
 
@@ -209,9 +209,9 @@ These are five sections, not five separate LLM chart calls. Save static HTML and
 1. Ingest an upload when supplied; validate, reconcile, and activate its immutable version.
 2. Generate the deterministic baseline for the selected reporting month outside the loop.
 3. Route the request. Obtain available periods before planning; retrieve static scope/definitions as needed.
-4. Produce and validate the bounded `AnalysisPlan`.
+4. Produce and validate the bounded `AnalysisPlan` of approved tool names; bind arguments from the pinned snapshot in Python.
 5. Execute initial tools. Comparative reporting inspects `station_movers` before final claims.
-6. The LLM inspects initial aggregates and selects the required variance investigation when a candidate exists.
+6. The LLM inspects initial aggregates and selects the required variance station when a candidate exists; Python binds the pinned current and prior periods.
 7. Validate follow-up execution and draft claims against the run's evidence.
 8. Render the approved claims/transitions, or return baseline-only partial output.
 
@@ -251,7 +251,7 @@ A failed call, wrong station/period, or missing dimension does not satisfy the r
 
 ## 9. Claims, Provenance, and Grounding
 
-`ReportDraft` contains strict `Claim` objects and hardcoded transition-enum selections. No free-form factual prose or transition text is permitted.
+`ReportDraft` contains strict `Claim` objects and hardcoded transition-enum selections. The model selects from exact candidate claim records constructed from successful evidence; full grounding validation remains mandatory. No free-form factual prose or transition text is permitted.
 
 Each claim carries:
 
@@ -350,7 +350,7 @@ Phase 0 records live in [the dataset manifest](docs/phase-0/dataset-manifest.md)
 - Map `member`/`casual` to Member/Casual and `classic_bike`/`electric_bike` to Classic/E-bike; other values become Unknown.
 - Display up to two decimal places without rounding stored evidence. Align charts by day number, leaving absent days as gaps rather than zeros.
 - Users supply a month; no omitted-month default is approved. Ask users to select among ambiguous station matches. Each request supplies its month and any required station; retain no analytical chat context.
-- Target a hosted application with retention of at most six months. Hosting/access controls, resource limits beyond file count, retention clock, and artifact coverage remain pending.
+- Target a hosted application with retention of at most six months. Approved local ingestion limits: 25 MB/file, 50 MB total file bytes, 200 MB expanded CSV data, 100 CSV members and one ingestion at a time. A valid month may activate while another month is rejected. Hosting/access controls, hosted capacity, retention clock, and artifact coverage remain pending.
 - The three evaluation curators are Abhee and Monisha (analytics), and Ashutosh (ingestion and agent behavior). Individual analytics case allocation, and authored fixtures remain pending.
 
 Agreed behavioral rules are specified above. These remaining project inputs were not supplied and must not be silently assumed:
@@ -360,7 +360,7 @@ Agreed behavioral rules are specified above. These remaining project inputs were
 | Source files for confirmed months | Source URLs, packaging, checksums, and parsed counts verified in the manifest; cleaned totals and the real demo candidate are cross-checked in [checked results](docs/phase-0/cleaned-expectations.md); curator review remains pending |
 | Multipart naming | Canonical CSV and both verified ZIP formats approved with alphabetical processing; other multipart variants remain unapproved |
 | Category dictionary | Mapping approved above; observed source values and counts verified in the Phase 0 manifest |
-| Contribution ties | Joint display approved, explicitly labeling Unknown; exact tied-category templates and claim representation remain pending |
+| Contribution ties | Joint display approved, explicitly labeling Unknown; exact wording and structured leaders approved under D17 |
 | Display formatting | Up to two decimals; day-number alignment with gaps for absent days approved |
 | Request context | Explicit month, station selection for ambiguous matches, and no retained analytical context approved; no omitted-month default |
 | Evaluation ownership | Three named curators, fixtures, expected results, and final acceptance evidence |

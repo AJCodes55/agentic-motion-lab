@@ -1,0 +1,28 @@
+import { expect, test } from '@playwright/test';
+const header='ride_id,rideable_type,started_at,ended_at,start_station_name,start_station_id,end_station_name,end_station_id,start_lat,start_lng,end_lat,end_lng,member_casual\n';
+const row=(id:string,month='01')=>`${id},classic_bike,2026-${month}-01 10:00:00,2026-${month}-01 10:02:00,Start,001,End,002,40,-74,40,-74,member\n`;
+test('uploads, replaces, and preserves active version when corrected upload is rejected',async({page})=>{
+ await page.goto('/');
+ const upload=page.getByLabel('Choose data files');
+ await upload.setInputFiles({name:'JC-202601-citibike-tripdata.csv',mimeType:'text/csv',buffer:Buffer.from(header+row('first'))});
+ await page.getByRole('button',{name:'Upload selected files'}).click();
+ await expect(page.getByText('2026-01: accepted')).toBeVisible();
+ await expect(page.getByText('Valid trips: 1',{exact:true})).toBeVisible();
+ const versions=page.locator('li').filter({hasText:/2026-01 · version/});
+ const original=await versions.textContent();
+ await upload.setInputFiles({name:'JC-202601-citibike-tripdata.csv',mimeType:'text/csv',buffer:Buffer.from(header+row('second')+row('third'))});
+ await page.getByRole('button',{name:'Upload selected files'}).click();
+ await expect(page.getByText('Valid trips: 2',{exact:true})).toBeVisible();
+ await expect(versions).not.toHaveText(original!);
+ const corrected=await versions.textContent();
+ await upload.setInputFiles({name:'JC-202601-citibike-tripdata.csv',mimeType:'text/csv',buffer:Buffer.from(header+row('wrong','02'))});
+ await page.getByRole('button',{name:'Upload selected files'}).click();
+ await expect(page.getByText('2026-01: rejected')).toBeVisible();
+ await expect(page.getByText('Previous active version, if any, is preserved.')).toBeVisible();
+ await expect(versions).toHaveText(corrected!);
+ await page.getByLabel('Reporting month').fill('2026-01');
+ await page.getByRole('button',{name:'Generate baseline report'}).click();
+ await expect(page.getByText('Report ready for 2026-01.')).toBeVisible();
+ await expect(page.getByTitle('Baseline report for 2026-01')).toHaveAttribute('sandbox','');
+ await expect(page.frameLocator('iframe').locator('body')).toContainText('2026');
+});

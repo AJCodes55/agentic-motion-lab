@@ -1,0 +1,137 @@
+{
+  "months": {
+    "202601": 39198,
+    "202602": 25387
+  },
+  "all_daily_totals_match": true,
+  "candidate": {
+    "station_id": "HB106",
+    "station_name": "River St & Newark St",
+    "current_count": 866,
+    "prior_count": 1584,
+    "delta": -718,
+    "percentage_change": -45.32828282828283,
+    "eligible": true,
+    "eligibility_reason": null,
+    "status": "existing",
+    "materiality": "Significant Change",
+    "direction": "decrease"
+  },
+  "variance": {
+    "current_dataset": {
+      "period": {
+        "year": 2026,
+        "month": 2
+      },
+      "version_id": "jc_2026_02_08a8e5824495493c9eb203af7e9135c1",
+      "sha256": "9e99af75b56b0164f57ad9ddfda13361f7d0b9bf47c6e2ded194eed9eb2b68f0"
+    },
+    "prior_dataset": {
+      "period": {
+        "year": 2026,
+        "month": 1
+      },
+      "version_id": "jc_2026_01_2b73536a27214fc39bcbc22eba0676ad",
+      "sha256": "ef8b6d9aed1b679e45c4c64e50456ecd43563f0ce3cc21eff6a21e8c069da2a5"
+    },
+    "station": {
+      "station_id": "HB106",
+      "station_name": "River St & Newark St",
+      "current_count": 866,
+      "prior_count": 1584,
+      "delta": -718,
+      "percentage_change": -45.32828282828283,
+      "eligible": true,
+      "eligibility_reason": null,
+      "status": "existing",
+      "materiality": "Significant Change",
+      "direction": "decrease"
+    },
+    "member_casual": {
+      "dimension": "member_casual",
+      "categories": [
+        {
+          "category": "Member",
+          "current_count": 751,
+          "prior_count": 1362,
+          "delta": -611,
+          "eligible": true,
+          "eligibility_reason": null,
+          "contribution_pct": 85.0974930362117
+        },
+        {
+          "category": "Casual",
+          "current_count": 115,
+          "prior_count": 222,
+          "delta": -107,
+          "eligible": true,
+          "eligibility_reason": null,
+          "contribution_pct": 14.902506963788301
+        },
+        {
+          "category": "Unknown",
+          "current_count": 0,
+          "prior_count": 0,
+          "delta": 0,
+          "eligible": false,
+          "eligibility_reason": "prior_sample_below_100",
+          "contribution_pct": null
+        }
+      ],
+      "leaders": [
+        {
+          "category": "Member",
+          "contribution_pct": 85.0974930362117
+        }
+      ],
+      "wording": "Primarily driven by Member."
+    },
+    "rideable_type": {
+      "dimension": "rideable_type",
+      "categories": [
+        {
+          "category": "Classic",
+          "current_count": 201,
+          "prior_count": 404,
+          "delta": -203,
+          "eligible": true,
+          "eligibility_reason": null,
+          "contribution_pct": 28.27298050139276
+        },
+        {
+          "category": "E-bike",
+          "current_count": 665,
+          "prior_count": 1180,
+          "delta": -515,
+          "eligible": true,
+          "eligibility_reason": null,
+          "contribution_pct": 71.72701949860725
+        },
+        {
+          "category": "Unknown",
+          "current_count": 0,
+          "prior_count": 0,
+          "delta": 0,
+          "eligible": false,
+          "eligibility_reason": "prior_sample_below_100",
+          "contribution_pct": null
+        }
+      ],
+      "leaders": [
+        {
+          "category": "E-bike",
+          "contribution_pct": 71.72701949860725
+        }
+      ],
+      "wording": "Driven by a mix of factors."
+    }
+  },
+  "report": {
+    "sections": 5,
+    "llm_calls": 0,
+    "evidence_records": 6,
+    "archive_matches_html": true
+  },
+  "both_variance_dimensions_match_independent_expectations": true,
+  "verification_scope": "Isolated temporary versions and archives; source aggregate evidence retained here. Temporary datasets and report files removed after verification."
+}

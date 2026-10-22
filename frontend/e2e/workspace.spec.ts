@@ -8,7 +8,7 @@ test('shows connection status, handles outage and retry', async ({ page }) => {
  await page.getByRole('button',{name:'Check connection'}).click();
  await expect(page.getByRole('status')).toHaveText('Backend connected');
  await expect(page.getByLabel('Reporting month')).toHaveValue('');
- await expect(page.getByRole('button',{name:'Generate report'})).toBeDisabled();
+ await expect(page.getByRole('button',{name:'Generate baseline report'})).toBeDisabled();
 });
 test('connects through the frontend proxy to the live backend',async({page})=>{
  await page.goto('/');

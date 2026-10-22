@@ -1,0 +1,13 @@
+{
+  "status": "complete",
+  "llm_calls": 4,
+  "tool_calls": 3,
+  "candidate_id": "HB106",
+  "candidate_prior_starts": 1584,
+  "candidate_current_starts": 866,
+  "candidate_delta": -718,
+  "both_breakdowns_present": true,
+  "grounded_member_wording": "Primarily driven by Member.",
+  "archived_artifacts_match": true,
+  "model": "Injected deterministic fake; no live OpenAI request or credentials used."
+}

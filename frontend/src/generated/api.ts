@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/agent-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agent Run */
+        post: operations["agent_run_agent_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/agent-runs/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Agent Run Stream */
+        post: operations["agent_run_stream_agent_runs_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -21,10 +55,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/ingestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ingest */
+        post: operations["ingest_ingestions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ingestions/fetch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fetch */
+        post: operations["fetch_ingestions_fetch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/periods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Periods */
+        get: operations["periods_periods_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report */
+        post: operations["report_reports_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AgentRun */
+        AgentRun: {
+            /** Candidate Id */
+            candidate_id?: string | null;
+            counters: components["schemas"]["RunCounters"];
+            /** Datasets */
+            datasets: components["schemas"]["DatasetReference"][];
+            /** Error Code */
+            error_code: string | null;
+            period: components["schemas"]["Period"];
+            /** Report Html */
+            report_html: string;
+            /** Run Id */
+            run_id: string;
+            /** Stages */
+            stages: components["schemas"]["StageStatus"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "complete" | "partial" | "refused";
+            /** Trace */
+            trace: components["schemas"]["ToolResult"][];
+            /** Validation Reason */
+            validation_reason?: string | null;
+            /** Warning */
+            warning: string | null;
+        };
         /** AnalysisRequest */
         AnalysisRequest: {
             /** Command */
@@ -42,7 +172,7 @@ export interface components {
              * Code
              * @enum {string}
              */
-            code: "HTTP_ERROR" | "VALIDATION_ERROR" | "INTERNAL_ERROR" | "ERR_SCHEMA_MISMATCH" | "ERR_UNSUPPORTED_INTENT" | "ERR_TOOL_EXECUTION" | "ERR_UNGROUNDED_CLAIM" | "ERR_BUDGET_EXCEEDED";
+            code: "HTTP_ERROR" | "VALIDATION_ERROR" | "INTERNAL_ERROR" | "ERR_SCHEMA_MISMATCH" | "ERR_UNSUPPORTED_INTENT" | "ERR_TOOL_EXECUTION" | "ERR_UNGROUNDED_CLAIM" | "ERR_BUDGET_EXCEEDED" | "ERR_UPLOAD_LIMIT" | "ERR_INGESTION_BUSY" | "ERR_SOURCE_UNAVAILABLE" | "ERR_UPLOAD_TIMEOUT";
             /** Message */
             message: string;
             /** Request Id */
@@ -54,12 +184,75 @@ export interface components {
             /** Validation Reason */
             validation_reason?: string | null;
         };
+        /** ApiResponse[AgentRun] */
+        ApiResponse_AgentRun_: {
+            data: components["schemas"]["AgentRun"] | null;
+            error: components["schemas"]["ApiError"] | null;
+            /** Success */
+            success: boolean;
+        };
+        /** ApiResponse[AvailablePeriods] */
+        ApiResponse_AvailablePeriods_: {
+            data: components["schemas"]["AvailablePeriods"] | null;
+            error: components["schemas"]["ApiError"] | null;
+            /** Success */
+            success: boolean;
+        };
+        /** ApiResponse[BaselineReport] */
+        ApiResponse_BaselineReport_: {
+            data: components["schemas"]["BaselineReport"] | null;
+            error: components["schemas"]["ApiError"] | null;
+            /** Success */
+            success: boolean;
+        };
         /** ApiResponse[HealthData] */
         ApiResponse_HealthData_: {
             data: components["schemas"]["HealthData"] | null;
             error: components["schemas"]["ApiError"] | null;
             /** Success */
             success: boolean;
+        };
+        /** ApiResponse[IngestionBatch] */
+        ApiResponse_IngestionBatch_: {
+            data: components["schemas"]["IngestionBatch"] | null;
+            error: components["schemas"]["ApiError"] | null;
+            /** Success */
+            success: boolean;
+        };
+        /** AvailablePeriods */
+        AvailablePeriods: {
+            /** Periods */
+            periods: components["schemas"]["DatasetReference"][];
+        };
+        /** BaselineReport */
+        BaselineReport: {
+            /** Datasets */
+            datasets: components["schemas"]["DatasetReference"][];
+            /** Evidence */
+            evidence: components["schemas"]["ToolResult"][];
+            /** Html */
+            html: string;
+            /**
+             * Llm Calls
+             * @default 0
+             * @constant
+             */
+            llm_calls: 0;
+            period: components["schemas"]["Period"];
+            /** Report Id */
+            report_id: string;
+        };
+        /** CategoryMapping */
+        CategoryMapping: {
+            /** Count */
+            count: number;
+            /**
+             * Normalized Value
+             * @enum {string}
+             */
+            normalized_value: "Member" | "Casual" | "Classic" | "E-bike" | "Unknown";
+            /** Raw Value */
+            raw_value: string;
         };
         /** Claim */
         Claim: {
@@ -156,6 +349,15 @@ export interface components {
              */
             unit: "trips" | "percent" | "minutes" | "percentage_points";
         };
+        /** FetchRequest */
+        FetchRequest: {
+            period: components["schemas"]["Period"];
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** HealthData */
         HealthData: {
             /**
@@ -169,6 +371,28 @@ export interface components {
              */
             status: "ok";
         };
+        /** IngestionBatch */
+        IngestionBatch: {
+            /** Ingestion Id */
+            ingestion_id: string;
+            /** Results */
+            results: components["schemas"]["MonthIngestionResult"][];
+        };
+        /** MonthIngestionResult */
+        MonthIngestionResult: {
+            dataset: components["schemas"]["DatasetReference"] | null;
+            /** Error Code */
+            error_code?: string | null;
+            /** Message */
+            message: string;
+            period: components["schemas"]["Period"] | null;
+            quality: components["schemas"]["PublicQualitySummary"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "accepted" | "rejected";
+        };
         /** Period */
         Period: {
             /** Month */
@@ -176,8 +400,16 @@ export interface components {
             /** Year */
             year: number;
         };
-        /** QualitySummary */
-        QualitySummary: {
+        /**
+         * PublicQualitySummary
+         * @description Bounded UI summary; full source dictionaries remain in version metadata.
+         */
+        PublicQualitySummary: {
+            /**
+             * Candidate Rows
+             * @default 0
+             */
+            candidate_rows: number;
             /**
              * Duplicate Rows
              * @default 0
@@ -195,6 +427,100 @@ export interface components {
              * @default 0
              */
             invalid_timestamp_rows: number;
+            /**
+             * Missing Station Rows
+             * @default 0
+             */
+            missing_station_rows: number;
+            /**
+             * Month Threshold Denominator
+             * @default 0
+             */
+            month_threshold_denominator: number;
+            /**
+             * Outside Month Rows
+             * @default 0
+             */
+            outside_month_rows: number;
+            /**
+             * Per Csv Parsed Counts
+             * @default []
+             */
+            per_csv_parsed_counts: number[];
+            /** Rejection Reason */
+            rejection_reason?: string | null;
+            /**
+             * Source Filenames
+             * @default []
+             */
+            source_filenames: string[];
+            /**
+             * Source Labels Truncated
+             * @default false
+             */
+            source_labels_truncated: boolean;
+            /** Source Rows */
+            source_rows: number;
+            /**
+             * Station Threshold Denominator
+             * @default 0
+             */
+            station_threshold_denominator: number;
+            /**
+             * Status
+             * @default accepted
+             * @enum {string}
+             */
+            status: "accepted" | "rejected";
+            /** Stopped Stage */
+            stopped_stage?: ("validation" | "timestamps" | "month" | "deduplication" | "stations" | "duration" | "categories" | "reconciliation" | "storage") | null;
+            /**
+             * Unknown Bike Rows
+             * @default 0
+             */
+            unknown_bike_rows: number;
+            /**
+             * Unknown Member Rows
+             * @default 0
+             */
+            unknown_member_rows: number;
+            /** Valid Rows */
+            valid_rows: number;
+        };
+        /** QualitySummary */
+        QualitySummary: {
+            /**
+             * Bike Value Mappings
+             * @default []
+             */
+            bike_value_mappings: components["schemas"]["CategoryMapping"][];
+            /**
+             * Candidate Rows
+             * @default 0
+             */
+            candidate_rows: number;
+            /**
+             * Duplicate Rows
+             * @default 0
+             */
+            duplicate_rows: number;
+            /** Excluded Rows */
+            excluded_rows: number;
+            /**
+             * Invalid Duration Rows
+             * @default 0
+             */
+            invalid_duration_rows: number;
+            /**
+             * Invalid Timestamp Rows
+             * @default 0
+             */
+            invalid_timestamp_rows: number;
+            /**
+             * Member Value Mappings
+             * @default []
+             */
+            member_value_mappings: components["schemas"]["CategoryMapping"][];
             /**
              * Missing Station Rows
              * @default 0
@@ -233,6 +559,17 @@ export interface components {
              */
             station_threshold_denominator: number;
             /**
+             * Status
+             * @default accepted
+             * @enum {string}
+             */
+            status: "accepted" | "rejected";
+            /**
+             * Stopped Stage
+             * @default null
+             */
+            stopped_stage: ("validation" | "timestamps" | "month" | "deduplication" | "stations" | "duration" | "categories" | "reconciliation" | "storage") | null;
+            /**
              * Unknown Bike Rows
              * @default 0
              */
@@ -244,6 +581,30 @@ export interface components {
             unknown_member_rows: number;
             /** Valid Rows */
             valid_rows: number;
+        };
+        /** RunCounters */
+        RunCounters: {
+            /** Input Tokens */
+            input_tokens: number;
+            /** Llm Calls */
+            llm_calls: number;
+            /** Output Tokens */
+            output_tokens: number;
+            /** Tool Calls */
+            tool_calls: number;
+        };
+        /** StageStatus */
+        StageStatus: {
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "Data Ingest" | "Agent Planning" | "Tool Execution" | "Final Report Generation";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "complete" | "failed" | "skipped";
         };
         /** ToolArguments */
         ToolArguments: {
@@ -299,6 +660,19 @@ export interface components {
             /** Values */
             values: components["schemas"]["EvidenceValue"][];
         };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -308,6 +682,72 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    agent_run_agent_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_AgentRun_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    agent_run_stream_agent_runs_stream_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_health_get: {
         parameters: {
             query?: never;
@@ -324,6 +764,118 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_HealthData_"];
+                };
+            };
+        };
+    };
+    ingest_ingestions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    files: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_IngestionBatch_"];
+                };
+            };
+        };
+    };
+    fetch_ingestions_fetch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FetchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_IngestionBatch_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    periods_periods_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_AvailablePeriods_"];
+                };
+            };
+        };
+    };
+    report_reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FetchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_BaselineReport_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

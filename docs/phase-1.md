@@ -1,5 +1,7 @@
 # Phase 1: Local Application Foundation
 
+Current application behavior now includes [Phase 2 ingestion and storage](phase-2.md). This document preserves the original Phase 1 scope and setup; upload controls are now functional as described in Phase 2.
+
 This phase establishes a Next.js/Tailwind interface and FastAPI service. It does not ingest files, run analytics, call an LLM, or generate reports. Source verification and reference expectations remain in [Phase 0](phase-0/dataset-manifest.md).
 
 ## Local Setup

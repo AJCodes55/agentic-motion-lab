@@ -1,0 +1,26 @@
+{
+  "202601": {
+    "status": "accepted",
+    "source_rows": 40044,
+    "valid_rows": 39198,
+    "outside_month_rows": 13,
+    "missing_station_rows": 825,
+    "invalid_duration_rows": 8,
+    "daily_totals_match": true,
+    "duration_total_matches_source_milliseconds": true,
+    "lake_sqlite_category_totals_reconcile": true,
+    "manifest_source_count": 1
+  },
+  "202602": {
+    "status": "accepted",
+    "source_rows": 25809,
+    "valid_rows": 25387,
+    "outside_month_rows": 6,
+    "missing_station_rows": 415,
+    "invalid_duration_rows": 1,
+    "daily_totals_match": true,
+    "duration_total_matches_source_milliseconds": true,
+    "lake_sqlite_category_totals_reconcile": true,
+    "manifest_source_count": 1
+  }
+}
