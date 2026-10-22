@@ -18,6 +18,9 @@ from .service import IngestionService
 from .baseline import BaselineReport, generate_standard_dashboard
 from .agent import AgentRun, AgentService
 from .llm import OpenAIProvider
+from .adhoc import AdhocRequest, AdhocResult, AdhocService
+from .history import ReportHistoryEntry, list_report_history, read_archived_report
+from .contracts import Contract
 from .contracts import IngestionBatch, AvailablePeriods, FetchRequest, AnalysisRequest
 from .ingestion import UploadedSource
 from fastapi.exceptions import RequestValidationError
@@ -27,6 +30,14 @@ from starlette.exceptions import HTTPException
 from .contracts import ApiError, ApiResponse, HealthData
 
 logger = logging.getLogger('mobility.requests')
+
+
+class ReportHistory(Contract):
+    reports: tuple[ReportHistoryEntry, ...]
+
+
+class ArchivedReport(Contract):
+    html: str
 
 
 def configure_logging() -> None:
@@ -116,6 +127,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except KeyError:
             return error_response(request, 404, 'HTTP_ERROR', 'No accepted dataset exists for the reporting month.')
         return ApiResponse(success=True, data=result, error=None)
+
+    @app.post('/adhoc', response_model=ApiResponse[AdhocResult])
+    def adhoc(body: AdhocRequest, request: Request):
+        try:
+            result = AdhocService(service.store).run(body)
+        except KeyError:
+            return error_response(request, 404, 'HTTP_ERROR', 'No accepted dataset exists for the reporting month.')
+        return ApiResponse(success=True, data=result, error=None)
+
+    @app.get('/reports/history', response_model=ApiResponse[ReportHistory])
+    def history():
+        return ApiResponse(success=True, data=ReportHistory(reports=list_report_history(service.store)), error=None)
+
+    @app.get('/reports/history/{report_id}', response_model=ApiResponse[ArchivedReport])
+    def archived(report_id: str, request: Request):
+        try:
+            html = read_archived_report(service.store, report_id)
+        except (KeyError, ValueError, FileNotFoundError):
+            return error_response(request, 404, 'HTTP_ERROR', 'Archived report is unavailable.')
+        return ApiResponse(success=True, data=ArchivedReport(html=html), error=None)
 
     @app.post('/agent-runs', response_model=ApiResponse[AgentRun])
     def agent_run(body: AnalysisRequest, request: Request) -> ApiResponse[AgentRun] | JSONResponse:

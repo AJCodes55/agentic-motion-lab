@@ -1,6 +1,6 @@
 # Project Decisions
 
-Last updated: 2026-10-19.
+Last updated: 2026-10-22.
 
 This is the canonical project-wide decision record. Update it after every crucial decision. Record what changed, why, approval/source, affected phase, and unresolved details. Preserve superseded decisions explicitly; do not silently replace them. The [SRS](../software_requirement_specification_srs.md) remains the requirements authority. Update affected requirements and the [live summary](summary.md) when a decision changes behavior or scope.
 
@@ -79,3 +79,11 @@ GitHub publication exclusions are approved under D14. Publication progress and v
 | T16 | Read `OPENAI_BASE_URL` and `OPENAI_MODEL` from backend environment; allow only the known public OpenAI and university Portkey API origins. Keep the existing bearer-key, strict-schema, and safe-fallback behavior. | Gateway URL/model mock tests pass; live backend and browser runs completed with the university gateway, a qualifying variance follow-up, and a grounded report. |
 | T17 | Restrict model planning to approved tool names and a follow-up station ID. Python binds pinned periods and remaining arguments, and supplies exact eligible claim candidates for final selection. | Prevented generic model arguments and unsupported claim fields in live attempts; final run completed with four model calls and no validation error. Full grounding checks remain in force. |
 | T18 | Run browser E2E checks against a built production frontend, with an isolated backend store and validated optional port overrides. | A retained trace showed Next.js development Fast Refresh reloading the page during a parallel ingestion test. Four subsequent three-worker runs passed (16/16 tests); hosted behavior remains separately scoped. |
+
+## Phase 5 Implementation Decisions
+
+| ID | Choice and reason | Verification and limits |
+| --- | --- | --- |
+| T19 | Provide strict structured ad-hoc requests and typed extraction from the existing command input. The four aggregate metric families are single-month only; station starts supports the immediately preceding month. Keep D04's explicit reporting month and station selection, with no retained analytical conversation context. | Request validation, refusal categories, conflicting reporting periods, long station IDs, and complete ambiguity resubmission are regression-tested. Natural-language classification remains model-dependent; structured queries avoid that dependency. |
+| T20 | Reuse a single baseline snapshot for station lookup, calculations, answer tables, and fixed SVG charts. A chart consumes successful evidence from the same run; archive the exact result, evidence, and SVG with a manifest published last. | Tests verify exact chart/answer values, Unknown shares, pinned replacements, escaped labels, invalid evidence rejection, and failed-write cleanup. No arbitrary chart code or paths are exposed. |
+| T21 | Browse one final saved report per run, preferring its ad-hoc artifact, then agent artifact, then baseline. Read saved HTML directly and validate its identity against the baseline's pinned dataset references. | Original baseline HTML/evidence remain saved. History tests cover single-month subsets with both months loaded, replacement immutability, metadata/HTML mismatch, path traversal, and symlinks. Hosting, access controls and retention remain deferred. |

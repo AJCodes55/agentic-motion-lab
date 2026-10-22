@@ -4,6 +4,8 @@ import type { components } from '../src/generated/api';
 import UploadPanel from './upload-panel';
 import ReportPanel from './report-panel';
 import AgentPanel from './agent-panel';
+import AdhocPanel from './adhoc-panel';
+import HistoryPanel from './history-panel';
 import { useEffect, useRef, useState } from 'react';
 
 export default function Dashboard() {
@@ -59,7 +61,9 @@ export default function Dashboard() {
         </section>
       </div>
       <AgentPanel period={period} command={command} busy={ingesting} />
+      <AdhocPanel period={period} busy={ingesting} />
       <ReportPanel period={period} busy={ingesting} />
+      <HistoryPanel />
     </main>
   );
 }

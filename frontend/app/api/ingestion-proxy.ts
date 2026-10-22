@@ -3,9 +3,9 @@ function failure(status: number, code: string, message: string) {
   return Response.json({ success: false, data: null, error: { code, message } }, { status, headers });
 }
 
-export async function proxy(path: '/ingestions' | '/ingestions/fetch' | '/periods' | '/reports' | '/agent-runs', request?: Request) {
+export async function proxy(path: '/ingestions' | '/ingestions/fetch' | '/periods' | '/reports' | '/agent-runs' | '/adhoc' | '/reports/history' | `/reports/history/${string}`, request?: Request) {
   try {
-    const limit = path === '/ingestions' ? 50_100_000 : path === '/agent-runs' ? 4096 : 1024;
+    const limit = path === '/ingestions' ? 50_100_000 : (path === '/agent-runs' || path === '/adhoc') ? 4096 : 1024;
     let body: Uint8Array | undefined;
     if (request) {
       const type = request.headers.get('content-type') || '';

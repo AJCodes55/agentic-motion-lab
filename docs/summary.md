@@ -1,6 +1,6 @@
 # Live Project Summary
 
-Last updated: 2026-10-19.
+Last updated: 2026-10-22.
 
 ## Update Rule
 
@@ -15,7 +15,8 @@ Update this file after every phase and every important step: implementation chan
 | 2 — Ingestion, cleaning, storage | Complete for local development | Upload/public-source fetch, exact cleaning, quality display, immutable CSV/SQLite versions, atomic activation and pinned reads are verified. See [Phase 2](phase-2.md). |
 | 3 — Deterministic analytics and fixed baseline | Complete for local development | Five-section zero-LLM reports, analytics, variance, archived evidence/assets, and report UI verified. See [Phase 3](phase-3.md). |
 | 4 — Agentic workflow and grounding | Locally verified with injected model and live university gateway | Bounded workflow, validated adaptive follow-up, grounded narrative, safe fallback and streamed UI are implemented. See [Phase 4](phase-4.md). |
-| 5–7 — Features, hardening, evaluation | Not started | Follow the [implementation plan](../implementation_plan.md). |
+| 5 — Supported ad-hoc features | Complete and locally verified | Supported metric/station queries, explicit ambiguity selection, evidence-backed charts, refusals and immutable history access. See [Phase 5](phase-5.md). |
+| 6–7 — Hardening, evaluation | Not started | Follow the [implementation plan](../implementation_plan.md). |
 
 ## Important Steps Completed
 
@@ -48,6 +49,14 @@ Update this file after every phase and every important step: implementation chan
 | 2026-10-22 | Completed Phase 4 browser checks | All four browser tests passed sequentially on isolated ports. One separate live UI request reached the university gateway and displayed HB106, the variance follow-up, and Member wording. A concurrent browser run had one ingestion UI timing failure; its isolated and sequential reruns passed. [Evidence](phase-4.md). |
 | 2026-10-22 | Closed parallel browser failure | Reproduced the ingestion test timeout and traced it to Next.js development Fast Refresh reloading the page mid-test. The E2E harness now builds/serves the production app and supports validated isolated ports. Four three-worker runs passed, 16/16 browser tests. [Evidence](phase-4.md). |
 
+| 2026-10-22 | Started Phase 5 | Read the current requirements, decisions and Phase 4 evidence. D04 remains authoritative: explicit month, explicit station selection for ambiguous names, and no analytical conversation context. Existing work is preserved; no commit or push is authorized. |
+
+| 2026-10-22 | Implemented Phase 5 and completed unit/integration review | Four metric families, station starts/comparisons, explicit ambiguity choices, safe evidence-backed charts and archived access are implemented. Backend: 201 tests, 94.48% coverage. Frontend: 64 tests, 84.69% branch coverage. Reviews fixed pinned archive subsets and command-month conflicts. All six browser tests pass, including real station selection, chart rendering and archive access. Both new browser workflows also passed three repeated runs each. T19–T21 record implementation choices. |
+
+| 2026-10-22 | Completed Phase 5 verification | Chromium tracing identified stale mouse targeting after scrolling past a sandboxed iframe. Explicit scroll/hover before a normal test click fixed synchronization; no application workaround was added. Full browser suite: 6/6; focused repeated workflows: 6/6. Production build, lint, typecheck, contract snapshot and diff checks passed. All review findings are resolved; test servers stopped. [Phase 5 evidence and limits](phase-5.md). No commit or push. |
+
+| 2026-10-22 | Prepared authorized Phase 5 publication | User authorized commit and push to the existing GitHub repository. Diff and changed-file secret-pattern checks passed. Updated the certifi security/compatibility patch pin to 2026.10.19; Python and production npm audits are clean, while the documented development-only npm advisory remains. Backend tests were rerun after the patch. |
+
 ## Remaining Work and Limits
 
 Local preview started on 2026-10-18: frontend `http://127.0.0.1:3000`, backend `http://127.0.0.1:8000`. Process availability depends on them remaining active, and a running backend must be restarted to load newer code and environment. Separate live gateway and browser checks succeeded. No embedding model is currently selected or implemented.
@@ -60,4 +69,4 @@ Local preview started on 2026-10-18: frontend `http://127.0.0.1:3000`, backend `
 
 ## Next Step
 
-Next: prepare Phase 5 or decide the hosted deployment limits. The Phase 4 live gateway and browser checks are complete; hosted deployment remains outside the completed scope.
+Next: Phase 6 interface polish and operational hardening. Resolve the affected hosting, access, retention and recovery decisions before implementing those operations. Phase 5 is complete locally; no new live gateway request or hosted deployment was performed.

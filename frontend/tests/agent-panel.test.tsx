@@ -70,3 +70,13 @@ test('hides a completed report after the selected request changes', async () => 
   rerender(<AgentPanel period="2026-02" command="Different request" busy={false} />);
   expect(screen.queryByTitle('Agent report for 2026-02')).not.toBeInTheDocument();
 });
+
+test('resubmits an ambiguous station with the explicit original request', async () => {
+  const fetcher = vi.fn().mockResolvedValueOnce(stream([{type:'result',data:{...complete,status:'refused',report_html:'',station_choices:[{station_id:'A',station_name:'Park'}]}}])).mockResolvedValueOnce(stream([{type:'result',data:complete}]));
+  vi.stubGlobal('fetch', fetcher);
+  render(<AgentPanel period="2026-02" command="Park starts" busy={false}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Run agent analysis'}));
+  fireEvent.click(await screen.findByRole('button',{name:'Analyze Park (A)'}));
+  await screen.findByTitle('Agent report for 2026-02');
+  expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({period:{year:2026,month:2},command:'Park starts',station_id:'A'});
+});

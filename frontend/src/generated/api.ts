@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/adhoc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adhoc */
+        post: operations["adhoc_adhoc_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/agent-runs": {
         parameters: {
             query?: never;
@@ -123,10 +140,105 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/reports/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** History */
+        get: operations["history_reports_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/history/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Archived */
+        get: operations["archived_reports_history__report_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdhocRequest */
+        AdhocRequest: {
+            /**
+             * Chart
+             * @default false
+             */
+            chart: boolean;
+            /**
+             * Comparison
+             * @default false
+             */
+            comparison: boolean;
+            comparison_period?: components["schemas"]["Period"] | null;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "total_trips" | "member_share" | "fleet_share" | "average_duration" | "station_starts";
+            period: components["schemas"]["Period"];
+            /** Station Id */
+            station_id?: string | null;
+            /** Station Query */
+            station_query?: string | null;
+        };
+        /** AdhocResult */
+        AdhocResult: {
+            /** Chart Svg */
+            chart_svg?: string | null;
+            /**
+             * Datasets
+             * @default []
+             */
+            datasets: components["schemas"]["DatasetReference"][];
+            /** Error Code */
+            error_code?: "ERR_UNSUPPORTED_INTENT" | null;
+            /**
+             * Evidence
+             * @default []
+             */
+            evidence: components["schemas"]["ToolResult"][];
+            /**
+             * Html
+             * @default
+             */
+            html: string;
+            /** Message */
+            message: string;
+            period: components["schemas"]["Period"];
+            /** Report Id */
+            report_id?: string | null;
+            /**
+             * Station Choices
+             * @default []
+             */
+            station_choices: components["schemas"]["StationChoice"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "success" | "needs_station_selection" | "refused";
+        };
         /** AgentRun */
         AgentRun: {
             /** Candidate Id */
@@ -143,6 +255,13 @@ export interface components {
             run_id: string;
             /** Stages */
             stages: components["schemas"]["StageStatus"][];
+            /**
+             * Station Choices
+             * @default []
+             */
+            station_choices: {
+                [key: string]: string;
+            }[];
             /**
              * Status
              * @enum {string}
@@ -184,9 +303,23 @@ export interface components {
             /** Validation Reason */
             validation_reason?: string | null;
         };
+        /** ApiResponse[AdhocResult] */
+        ApiResponse_AdhocResult_: {
+            data: components["schemas"]["AdhocResult"] | null;
+            error: components["schemas"]["ApiError"] | null;
+            /** Success */
+            success: boolean;
+        };
         /** ApiResponse[AgentRun] */
         ApiResponse_AgentRun_: {
             data: components["schemas"]["AgentRun"] | null;
+            error: components["schemas"]["ApiError"] | null;
+            /** Success */
+            success: boolean;
+        };
+        /** ApiResponse[ArchivedReport] */
+        ApiResponse_ArchivedReport_: {
+            data: components["schemas"]["ArchivedReport"] | null;
             error: components["schemas"]["ApiError"] | null;
             /** Success */
             success: boolean;
@@ -218,6 +351,18 @@ export interface components {
             error: components["schemas"]["ApiError"] | null;
             /** Success */
             success: boolean;
+        };
+        /** ApiResponse[ReportHistory] */
+        ApiResponse_ReportHistory_: {
+            data: components["schemas"]["ReportHistory"] | null;
+            error: components["schemas"]["ApiError"] | null;
+            /** Success */
+            success: boolean;
+        };
+        /** ArchivedReport */
+        ArchivedReport: {
+            /** Html */
+            html: string;
         };
         /** AvailablePeriods */
         AvailablePeriods: {
@@ -582,6 +727,29 @@ export interface components {
             /** Valid Rows */
             valid_rows: number;
         };
+        /** ReportHistory */
+        ReportHistory: {
+            /** Reports */
+            reports: components["schemas"]["ReportHistoryEntry"][];
+        };
+        /** ReportHistoryEntry */
+        ReportHistoryEntry: {
+            /** Datasets */
+            datasets: components["schemas"]["DatasetReference"][];
+            period: components["schemas"]["Period"];
+            /** Report Id */
+            report_id: string;
+            /**
+             * Report Kind
+             * @enum {string}
+             */
+            report_kind: "baseline" | "agent" | "adhoc";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "complete" | "partial" | "refused";
+        };
         /** RunCounters */
         RunCounters: {
             /** Input Tokens */
@@ -605,6 +773,13 @@ export interface components {
              * @enum {string}
              */
             status: "complete" | "failed" | "skipped";
+        };
+        /** StationChoice */
+        StationChoice: {
+            /** Station Id */
+            station_id: string;
+            /** Station Name */
+            station_name: string;
         };
         /** ToolArguments */
         ToolArguments: {
@@ -682,6 +857,39 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    adhoc_adhoc_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdhocRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_AdhocResult_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     agent_run_agent_runs_post: {
         parameters: {
             query?: never;
@@ -867,6 +1075,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_BaselineReport_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    history_reports_history_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_ReportHistory_"];
+                };
+            };
+        };
+    };
+    archived_reports_history__report_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_ArchivedReport_"];
                 };
             };
             /** @description Validation Error */

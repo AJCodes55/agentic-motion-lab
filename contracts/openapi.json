@@ -1,6 +1,167 @@
 {
   "components": {
     "schemas": {
+      "AdhocRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "chart": {
+            "default": false,
+            "title": "Chart",
+            "type": "boolean"
+          },
+          "comparison": {
+            "default": false,
+            "title": "Comparison",
+            "type": "boolean"
+          },
+          "comparison_period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Period"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metric": {
+            "enum": [
+              "total_trips",
+              "member_share",
+              "fleet_share",
+              "average_duration",
+              "station_starts"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "station_id": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Station Id"
+          },
+          "station_query": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Station Query"
+          }
+        },
+        "required": [
+          "period",
+          "metric"
+        ],
+        "title": "AdhocRequest",
+        "type": "object"
+      },
+      "AdhocResult": {
+        "additionalProperties": false,
+        "properties": {
+          "chart_svg": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chart Svg"
+          },
+          "datasets": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DatasetReference"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "const": "ERR_UNSUPPORTED_INTENT",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "evidence": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ToolResult"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "html": {
+            "default": "",
+            "title": "Html",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "report_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Report Id"
+          },
+          "station_choices": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StationChoice"
+            },
+            "title": "Station Choices",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "success",
+              "needs_station_selection",
+              "refused"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message",
+          "period"
+        ],
+        "title": "AdhocResult",
+        "type": "object"
+      },
       "AgentRun": {
         "additionalProperties": false,
         "properties": {
@@ -52,6 +213,17 @@
               "$ref": "#/components/schemas/StageStatus"
             },
             "title": "Stages",
+            "type": "array"
+          },
+          "station_choices": {
+            "default": [],
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "title": "Station Choices",
             "type": "array"
           },
           "status": {
@@ -221,6 +393,42 @@
         "title": "ApiError",
         "type": "object"
       },
+      "ApiResponse_AdhocResult_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AdhocResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "error"
+        ],
+        "title": "ApiResponse[AdhocResult]",
+        "type": "object"
+      },
       "ApiResponse_AgentRun_": {
         "additionalProperties": false,
         "properties": {
@@ -255,6 +463,42 @@
           "error"
         ],
         "title": "ApiResponse[AgentRun]",
+        "type": "object"
+      },
+      "ApiResponse_ArchivedReport_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ArchivedReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "error"
+        ],
+        "title": "ApiResponse[ArchivedReport]",
         "type": "object"
       },
       "ApiResponse_AvailablePeriods_": {
@@ -399,6 +643,56 @@
           "error"
         ],
         "title": "ApiResponse[IngestionBatch]",
+        "type": "object"
+      },
+      "ApiResponse_ReportHistory_": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReportHistory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiError"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "data",
+          "error"
+        ],
+        "title": "ApiResponse[ReportHistory]",
+        "type": "object"
+      },
+      "ArchivedReport": {
+        "additionalProperties": false,
+        "properties": {
+          "html": {
+            "title": "Html",
+            "type": "string"
+          }
+        },
+        "required": [
+          "html"
+        ],
+        "title": "ArchivedReport",
         "type": "object"
       },
       "AvailablePeriods": {
@@ -1288,6 +1582,69 @@
         "title": "QualitySummary",
         "type": "object"
       },
+      "ReportHistory": {
+        "additionalProperties": false,
+        "properties": {
+          "reports": {
+            "items": {
+              "$ref": "#/components/schemas/ReportHistoryEntry"
+            },
+            "title": "Reports",
+            "type": "array"
+          }
+        },
+        "required": [
+          "reports"
+        ],
+        "title": "ReportHistory",
+        "type": "object"
+      },
+      "ReportHistoryEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetReference"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "report_id": {
+            "title": "Report Id",
+            "type": "string"
+          },
+          "report_kind": {
+            "enum": [
+              "baseline",
+              "agent",
+              "adhoc"
+            ],
+            "title": "Report Kind",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "complete",
+              "partial",
+              "refused"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "report_id",
+          "period",
+          "datasets",
+          "report_kind",
+          "status"
+        ],
+        "title": "ReportHistoryEntry",
+        "type": "object"
+      },
       "RunCounters": {
         "additionalProperties": false,
         "properties": {
@@ -1351,6 +1708,25 @@
           "status"
         ],
         "title": "StageStatus",
+        "type": "object"
+      },
+      "StationChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "station_id": {
+            "title": "Station Id",
+            "type": "string"
+          },
+          "station_name": {
+            "title": "Station Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "station_id",
+          "station_name"
+        ],
+        "title": "StationChoice",
         "type": "object"
       },
       "ToolArguments": {
@@ -1571,6 +1947,44 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/adhoc": {
+      "post": {
+        "operationId": "adhoc_adhoc_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdhocRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AdhocResult_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Adhoc"
+      }
+    },
     "/agent-runs": {
       "post": {
         "operationId": "agent_run_agent_runs_post",
@@ -1797,6 +2211,63 @@
           }
         },
         "summary": "Report"
+      }
+    },
+    "/reports/history": {
+      "get": {
+        "operationId": "history_reports_history_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ReportHistory_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "History"
+      }
+    },
+    "/reports/history/{report_id}": {
+      "get": {
+        "operationId": "archived_reports_history__report_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "title": "Report Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_ArchivedReport_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Archived"
       }
     }
   }

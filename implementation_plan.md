@@ -157,6 +157,8 @@ Upload a month, generate the baseline, observe a qualifying decline, watch the a
 
 ## 8. Phase 5 — Supported Ad-Hoc Features
 
+**Status:** Complete and locally verified on 2026-10-22. Four single-month metric families, station starts and adjacent comparisons, explicit ambiguity selection, evidence-backed charts, refusals and immutable history access are implemented. Backend: 201 tests, 94.48% coverage; frontend: 64 tests, 84.69% branch coverage; all six browser tests, lint, typecheck, production build and reviews passed. Publication authorized on 2026-10-22. See [Phase 5 verification](docs/phase-5.md).
+
 ### Features and Tasks
 
 - Add all four supported single-month metric queries.

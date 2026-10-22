@@ -5,7 +5,7 @@ import { useState } from 'react';
 type Stage = { name: string; status: string };
 type Value = { entity_id?: string; metric_type: string; dimension?: string | null; category?: string | null; unit?: string; exact_tool_value?: number | null; eligible?: boolean; eligibility_reason?: string | null };
 type Trace = { tool_name: string; status: string; arguments?: Record<string, unknown>; values?: Value[] };
-type AgentRun = { run_id: string; status: 'complete' | 'partial' | 'refused'; report_html: string; warning?: string | null; candidate_id?: string | null; stages: Stage[]; trace: Trace[] };
+type AgentRun = { run_id: string; status: 'complete' | 'partial' | 'refused'; report_html: string; warning?: string | null; candidate_id?: string | null; stages: Stage[]; trace: Trace[]; station_choices?: { station_id: string; station_name: string }[] };
 
 const stageNames = ['Data Ingest', 'Agent Planning', 'Tool Execution', 'Final Report Generation'];
 const formatPercent = (value: number | null | undefined) => typeof value === 'number' ? `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value)}%` : 'unavailable';
@@ -29,14 +29,14 @@ export default function AgentPanel({ period, command, busy }: { period: string; 
   const liveForCurrent = running && runningPeriod === period && runningCommand === command;
   const displayTrace = visibleRun?.trace || (liveForCurrent ? liveTrace : []);
 
-  async function analyze() {
+  async function analyze(stationId?: string) {
     setRunning(true); setError(''); setRun(null); setLiveStages([]); setLiveTrace([]); setLiveCandidate(null);
     setRunningPeriod(period); setRunningCommand(command);
     const [year, month] = period.split('-').map(Number);
     try {
       const response = await fetch('/api/agent-runs/stream', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ period: { year, month }, command: command.trim() }),
+        body: JSON.stringify({ period: { year, month }, command: command.trim(), ...(stationId ? { station_id: stationId } : {}) }),
         signal: AbortSignal.timeout(180_000),
       });
       if (!response.ok || !response.body) throw new Error('Agent analysis failed. Retry.');
@@ -73,7 +73,7 @@ export default function AgentPanel({ period, command, busy }: { period: string; 
       buffered += decoder.decode();
       if (buffered) consume(buffered);
       const data = result.data;
-      if (!data || !['complete', 'partial', 'refused'].includes(data.status) || typeof data.report_html !== 'string' || (data.status !== 'refused' && !data.report_html.trim()) || !Array.isArray(data.stages) || !Array.isArray(data.trace)) {
+      if (!data || !['complete', 'partial', 'refused'].includes(data.status) || typeof data.report_html !== 'string' || (data.status !== 'refused' && !data.report_html.trim()) || !Array.isArray(data.stages) || !Array.isArray(data.trace) || (data.station_choices !== undefined && (!Array.isArray(data.station_choices) || !data.station_choices.every(choice => typeof choice.station_id === 'string' && typeof choice.station_name === 'string')))) {
         throw new Error('Agent service returned an invalid report. Retry.');
       }
       setRunPeriod(period);
@@ -97,6 +97,7 @@ export default function AgentPanel({ period, command, busy }: { period: string; 
     {visibleRun && <>
       <p className="mt-4">{visibleRun.status === 'complete' ? `Agent report ready for ${runPeriod}.` : visibleRun.status === 'partial' ? 'Agent analysis partial. Baseline report available.' : 'Request refused.'}</p>
     </>}
+    {visibleRun?.station_choices && visibleRun.station_choices.length > 0 && <ul aria-label="Agent matching stations">{visibleRun.station_choices.map(choice => <li key={choice.station_id}><button type="button" disabled={busy || running} onClick={() => void analyze(choice.station_id)}>Analyze {choice.station_name} ({choice.station_id})</button></li>)}</ul>}
     {(visibleRun?.candidate_id || (liveForCurrent && liveCandidate)) && <p className="mt-2">Mandatory investigation candidate: {visibleRun?.candidate_id || liveCandidate}</p>}
       {displayTrace.length > 0 && <section aria-label="Agent tool activity" className="mt-4">
         <h3 className="font-semibold">Tool activity</h3>
