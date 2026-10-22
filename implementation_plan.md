@@ -103,7 +103,7 @@ A failed upload preserves the previous version; a successful upload activates ma
 
 ## 6. Phase 3 — Deterministic Analytics and Fixed Baseline
 
-**Status:** Complete for local development on 2026-10-18. Five-section zero-LLM dashboard, analytics/variance, immutable archives, and UI verified. Backend: 103 tests, 95.91% coverage; frontend: 35 tests; three browser tests, lint/typecheck/build and reviews passed. Real January/February totals, daily starts and both candidate variance dimensions match independent expectations. D17 resolves ties. See [Phase 3](docs/phase-3.md). Phases 2–3 remain uncommitted; no push requested.
+**Status:** Complete for local development on 2026-10-18 and published with Phases 2–4 in commit `53c569a`. Five-section zero-LLM dashboard, analytics/variance, immutable archives, and UI verified. Backend: 103 tests, 95.91% coverage; frontend: 35 tests; three browser tests, lint/typecheck/build and reviews passed. Real January/February totals, daily starts and both candidate variance dimensions match independent expectations. D17 resolves ties. See [Phase 3](docs/phase-3.md).
 
 ### Features and Tasks
 
@@ -128,7 +128,7 @@ Without any LLM calls, an accepted upload produces a correct, reproducible repor
 
 ## 7. Phase 4 — Agentic MVP with Grounding
 
-**Status:** Implemented and verified locally with an injected deterministic model and a successful live university-gateway run. Existing Phase 2–4 changes remain local and uncommitted. See [Phase 4 evidence](docs/phase-4.md).
+**Status:** Implemented, committed, and verified with an injected deterministic model, a live university-gateway run, and a live browser workflow. See [Phase 4 evidence](docs/phase-4.md).
 
 ### Features and Tasks
 

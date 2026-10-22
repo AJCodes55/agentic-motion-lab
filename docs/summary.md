@@ -45,12 +45,13 @@ Update this file after every phase and every important step: implementation chan
 
 | 2026-10-19 | Configured university gateway | User supplied `https://api.portkey.ai/v1` and `@30875-fall26-openai/gpt-5-nano` from assignment code. Backend configuration, example environment, tests, SRS and plan now reflect this route (D19). Key value was preserved locally and not printed. |
 | 2026-10-21 | Verified live Phase 4 run | University gateway run completed on verified public January/February data: HB106, 1,584 → 866 starts, both variance dimensions, grounded Member wording, and matching archived report. Four model and three successful tool calls; 3,740 input and 413 output tokens. Backend: 156 tests, 94.56% coverage. [Evidence](phase-4.md). |
+| 2026-10-22 | Completed Phase 4 browser checks | All four browser tests passed sequentially on isolated ports. One separate live UI request reached the university gateway and displayed HB106, the variance follow-up, and Member wording. A concurrent browser run had one ingestion UI timing failure; its isolated and sequential reruns passed. [Evidence](phase-4.md). |
 
 ## Remaining Work and Limits
 
-Local preview started on 2026-10-18: frontend `http://127.0.0.1:3000`, backend `http://127.0.0.1:8000`. Both health endpoints and the interface returned successfully. Process availability depends on them remaining active, and the backend must be restarted to load the latest code and environment. A separate live gateway run succeeded. No embedding model is currently selected or implemented.
+Local preview started on 2026-10-18: frontend `http://127.0.0.1:3000`, backend `http://127.0.0.1:8000`. Process availability depends on them remaining active, and a running backend must be restarted to load newer code and environment. Separate live gateway and browser checks succeeded. No embedding model is currently selected or implemented.
 
-- Phases 2–4 are implemented locally. The public OpenAI endpoint rejected the university key; the supplied university Portkey gateway URL and model route completed a live run. All local changes remain uncommitted and unpushed.
+- Phases 2–4 are implemented and published in commit `53c569a`. The public OpenAI endpoint rejected the university key; the supplied university Portkey gateway URL and model route completed live backend and browser checks.
 - Tied-contribution wording and structured leaders approved under D17; allocate individual analytics cases and obtain challenging contributions from each curator during evaluation preparation.
 - Resolve hosting/access controls, resource limits, recovery, and retention details before the affected implementation or exposure.
 - Track the development dependency advisory described in [Phase 1](phase-1.md). Production npm audit reported zero vulnerabilities at the recorded check; full development audit was not clean.
@@ -58,4 +59,4 @@ Local preview started on 2026-10-18: frontend `http://127.0.0.1:3000`, backend `
 
 ## Next Step
 
-Next: run the live university gateway check using its supplied URL/model route, then record the observed result. Commit/push only when requested. Hosted deployment and later phases remain outside the completed scope.
+Next: prepare Phase 5 or decide the hosted deployment limits. The Phase 4 live gateway and browser checks are complete; hosted deployment remains outside the completed scope.
