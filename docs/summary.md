@@ -88,6 +88,8 @@ Update this file after every phase and every important step: implementation chan
 
 | 2026-10-24 | Prepared authorized Phase 6 publication | User explicitly requested commit and push to the existing GitHub repository. Fetched `origin/main`; local/remote heads match before publication. Full candidate-file security review found no credentials, raw datasets, SQLite databases, backups or private assistant files. Python pinned dependency audit (31 packages), production npm audit and full npm audit all report zero known vulnerabilities; no dependency versions were changed. Existing verified results remain 254 backend tests (93.14% coverage), 75 frontend tests and 8 browser tests. Deployment remains deferred; no cloud resources or model calls are part of publication. |
 
+| 2026-10-24 | Committed and pushed Phase 6 | Feature commit [`7c63f2d`](https://github.com/AJCodes55/agentic-motion-lab/commit/7c63f2d35e72c175b832baa937500f1d89f10f6f) is published on `origin/main`: 54 files covering local interface polish, retention/cleanup, backup/restore, tests, Vercel preparation and operating documentation. Staged candidate size was 368,438 bytes; forbidden-file and credential checks found no matches. Python (31 pinned packages), production npm and full npm audits reported zero known vulnerabilities. [GitHub CI](https://github.com/AJCodes55/agentic-motion-lab/actions/runs/40158309205) was in progress when checked; a remote pass is not yet claimed. This documentation follow-up records the completed publication. No deployment or model call. |
+
 ## Remaining Work and Limits
 
 Current local preview (2026-10-24): frontend `http://127.0.0.1:3001`, backend API `http://127.0.0.1:8000`. Port 3000 belongs to a separate portfolio project. The application UI is served by Next.js on 3001; backend `/` is not the interface. Process availability depends on them remaining active, and a running backend must be restarted to load newer code and environment. Separate live gateway and browser checks succeeded. No embedding model is currently selected or implemented.
@@ -96,7 +98,7 @@ Current local preview (2026-10-24): frontend `http://127.0.0.1:3001`, backend AP
 - Tied-contribution wording and structured leaders approved under D17; allocate individual analytics cases and obtain challenging contributions from each curator during evaluation preparation.
 - Resolve hosting/access controls, resource limits, recovery, and retention details before the affected implementation or exposure.
 - The earlier development dependency advisory is preserved as historical evidence in [Phase 1](phase-1.md). The refreshed 2026-10-24 production and full npm audits both report zero known vulnerabilities; the Python pinned dependency audit is also clean.
-- Phase 2–3 verification is local; remote CI will run after a requested commit/push. No hosted deployment has occurred. Isolated test servers were stopped; a separate local user preview was subsequently started as noted above. Historic Phase 1 CI links remain above.
+- Historical Phase 2–3 verification is local; Phase 6 publication has now triggered remote CI, which was in progress at the recorded check. No hosted deployment has occurred. Isolated test servers were stopped; a separate local user preview was subsequently started as noted above. Historic Phase 1 CI links remain above.
 
 ## Next Step
 
