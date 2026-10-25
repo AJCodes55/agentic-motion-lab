@@ -96,3 +96,31 @@ def test_mover_evidence_keeps_both_counts_delta_and_eligibility(tmp_path):
     result = next(item for item in report.evidence if item.tool_name == 'station_movers')
     values = {(item.period.month, item.metric_type): item.exact_tool_value for item in result.values}
     assert values == {(2, 'current_volume'): 60, (1, 'current_volume'): 120, (2, 'absolute_change'): -60, (2, 'percentage_change'): -50.0}
+
+
+def test_report_has_keyboard_scroll_regions_and_column_headers(tmp_path):
+    store = DatasetStore(tmp_path)
+    ref = publish(store)
+    report = generate_standard_dashboard(store, ref.period)
+    assert '<main id="report-content">' in report.html
+    assert '<th scope="col">' in report.html
+    assert 'tabindex="0" role="region" aria-label="Scrollable data table"' in report.html
+    assert 'overflow-x:auto' in report.html
+    assert ':focus-visible' in report.html
+
+
+def test_comparison_chart_has_exact_tables_and_noncolor_legend(tmp_path):
+    store = DatasetStore(tmp_path)
+    publish(store)
+    current = publish(store, month=2)
+    report = generate_standard_dashboard(store, current.period)
+    daily = report.html.split('<h2>Daily Trend</h2>')[1].split('</section>')[0]
+    assert '<th scope="col">Day of month</th>' in daily
+    assert '<td>2026-01</td><td>31</td><td>0</td>' in daily
+    assert '<td>2026-02</td><td>28</td><td>0</td>' in daily
+    assert '<td>2026-02</td><td>29</td>' not in daily
+    assert 'stroke-dasharray="7 4"' in daily
+    assert '2026-01 (dashed)' in daily
+    mix = report.html.split('<h2>Mix Breakdowns</h2>')[1].split('</section>')[0]
+    assert mix.count('<th scope="col">Share (%)</th>') == 4
+    assert mix.count('<td>Unknown (unclassified)</td>') == 4

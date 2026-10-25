@@ -1,6 +1,7 @@
 """Local bounded ingestion orchestration and approved public-source fetching."""
 from contextlib import contextmanager
 from collections.abc import Iterator, Sequence
+from datetime import datetime
 import fcntl
 import hashlib
 import sqlite3
@@ -14,6 +15,7 @@ from .config import Settings
 from .contracts import IngestionBatch, MonthIngestionResult, Period, QualitySummary
 from .ingestion import IngestionError, IngestionLimits, UploadedSource, clean_month, source_period, validate_batch_sources
 from .storage import DatasetStore
+from .lifecycle import utc_now
 
 _PROCESS_LOCK = Lock()
 
@@ -47,11 +49,12 @@ class IngestionService:
             _PROCESS_LOCK.release()
 
     def ingest(self, sources: tuple[UploadedSource, ...]) -> IngestionBatch:
+        uploaded_at = utc_now()
         ingestion_id = str(uuid4())
         try:
             validate_batch_sources(tuple(sources), self.limits)
         except IngestionError as error:
-            self._quarantine(ingestion_id, sources, error.quality)
+            self._quarantine(ingestion_id, sources, error.quality, uploaded_at)
             raise HTTPException(413) from None
         groups = {}
         results = []
@@ -61,7 +64,7 @@ class IngestionService:
             except ValueError:
                 quality = QualitySummary(source_rows=0, valid_rows=0, excluded_rows=0,
                                          status='rejected', stopped_stage='validation', rejection_reason='Unsupported source filename')
-                self._quarantine(ingestion_id, (source,), quality)
+                self._quarantine(ingestion_id, (source,), quality, uploaded_at)
                 results.append(MonthIngestionResult(period=None, status='rejected', dataset=None,
                     quality=quality, error_code='ERR_SCHEMA_MISMATCH', message='Unsupported source filename'))
                 continue
@@ -70,7 +73,7 @@ class IngestionService:
             try:
                 cleaned = clean_month(tuple(grouped), self.limits)
                 try:
-                    reference = self.store.persist_and_activate(cleaned)
+                    reference = self.store.persist_and_activate(cleaned, uploaded_at=uploaded_at)
                 except (OSError, ValueError, sqlite3.Error):
                     quality = QualitySummary(**(cleaned.quality.model_dump() | {
                         'status': 'rejected', 'stopped_stage': 'storage',
@@ -80,12 +83,13 @@ class IngestionService:
                 results.append(MonthIngestionResult(period=cleaned.period, status='accepted', dataset=reference,
                     quality=cleaned.quality, error_code=None, message='Month activated.'))
             except IngestionError as error:
-                self._quarantine(ingestion_id, grouped, error.quality)
+                self._quarantine(ingestion_id, grouped, error.quality, uploaded_at)
                 results.append(MonthIngestionResult(period=source_period(grouped[0].name), status='rejected',
                     dataset=None, quality=error.quality, error_code=error.code, message=str(error)))
         return IngestionBatch(ingestion_id=ingestion_id, results=tuple(results))
 
-    def _quarantine(self, ingestion_id: str, sources: Sequence[UploadedSource], quality: QualitySummary) -> None:
+    def _quarantine(self, ingestion_id: str, sources: Sequence[UploadedSource], quality: QualitySummary,
+                    uploaded_at: datetime) -> None:
         directory = self.settings.data_root / 'quarantine' / ingestion_id
         directory.mkdir(parents=True, exist_ok=True)
         manifests = []
@@ -95,7 +99,7 @@ class IngestionService:
             (directory / name).write_bytes(source.content)
             manifests.append({'source_name': source.name, 'quarantine_file': name,
                               'sha256': hashlib.sha256(source.content).hexdigest()})
-        self.store.record_rejection(ingestion_id, quality, manifests)
+        self.store.record_rejection(ingestion_id, quality, manifests, uploaded_at=uploaded_at)
 
     def fetch(self, period: Period) -> UploadedSource:
         prefix = f'JC-{period.year:04d}{period.month:02d}-citibike-tripdata'

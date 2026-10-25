@@ -33,3 +33,12 @@ test('shows running state while request is pending',()=>{
  expect(screen.getByRole('status')).toHaveTextContent('Computing verified monthly metrics');
  expect(screen.getByRole('button',{name:'Generating baseline report…'})).toBeDisabled();
 });
+test('hides reports when selected reporting month changes',async()=>{
+ vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({success:true,data:{html:'<h1>January</h1>'}})}));
+ const {rerender}=render(<ReportPanel period="2026-01" busy={false}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Generate baseline report'}));
+ await screen.findByTitle('Baseline report for 2026-01');
+ rerender(<ReportPanel period="2026-02" busy={false}/>);
+ expect(screen.queryByTitle('Baseline report for 2026-01')).not.toBeInTheDocument();
+ expect(screen.getByText('No report yet.')).toBeInTheDocument();
+});

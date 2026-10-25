@@ -133,3 +133,16 @@ def test_adhoc_references_must_be_ordered_pinned_subset_including_current(tmp_pa
     (directory / 'adhoc.html').write_text(result.html)
     with pytest.raises(ValueError, match='identity mismatch'):
         list_report_history(store)
+
+
+def test_expired_baseline_dependencies_hide_saved_reports(tmp_path, monkeypatch):
+    from datetime import datetime, timezone
+    import mobility.storage as storage
+    monkeypatch.setattr(storage, 'utc_now', lambda: datetime(2026, 10, 24, 12, tzinfo=timezone.utc))
+    store = DatasetStore(tmp_path)
+    ref = publish(store)
+    report = generate_standard_dashboard(store, ref.period)
+    monkeypatch.setattr(storage, 'utc_now', lambda: datetime(2027, 4, 24, 12, tzinfo=timezone.utc))
+    assert list_report_history(store) == ()
+    with pytest.raises(KeyError, match='expired'):
+        read_archived_report(store, report.report_id)

@@ -23,9 +23,9 @@ def _label(value):
 
 
 def _table(headers, rows):
-    head = ''.join(f'<th>{escape(str(value))}</th>' for value in headers)
+    head = ''.join(f'<th scope="col">{escape(str(value))}</th>' for value in headers)
     body = ''.join('<tr>' + ''.join(f'<td>{escape(f'{value:.2f}' if isinstance(value, float) else str(value))}</td>' for value in row) + '</tr>' for row in rows)
-    return f'<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>'
+    return f'<div class="table-scroll" tabindex="0" role="region" aria-label="Scrollable data table"><table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
 
 
 def _bars(title, categories):
@@ -38,11 +38,21 @@ def _bars(title, categories):
 
 def _daily(series):
     max_count = max((day.count for _, trend in series for day in trend.days), default=1) or 1
-    lines = []
+    # Reserve enough axis space even for large exact trip counts.
+    left = max(65, len(str(max_count)) * 9 + 15)
+    lines = [f'<text x="{left-10}" y="44" text-anchor="end">{max_count}</text>'
+             f'<text x="{left-10}" y="184" text-anchor="end">0</text>']
+    lines.extend(f'<text x="{left+(day-1)*19}" y="200">{day}</text>' for day in (1, 10, 20, 31))
     for index, (label, trend) in enumerate(series):
-        points = ' '.join(f'{30+(day.day-1)*19},{180-day.count/max_count*140:.3f}' for day in trend.days)
-        lines.append(f'<polyline fill="none" stroke="{("#155e75", "#b45309")[index]}" stroke-width="2" points="{points}"/><text x="30" y="{210+index*20}">{escape(label)}</text>')
-    return '<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Daily starts aligned by day of month; absent calendar days are gaps" viewBox="0 0 670 260"><title>Daily start counts</title><text x="230" y="255">Day of month</text>' + ''.join(lines) + '</svg>'
+        points = ' '.join(f'{left+(day.day-1)*19},{180-day.count/max_count*140:.3f}' for day in trend.days)
+        color = ("#155e75", "#b45309")[index]
+        dash = ' stroke-dasharray="7 4"' if index else ''
+        style = 'dashed' if index else 'solid'
+        legend_y = 220 + index * 20
+        lines.append(f'<polyline fill="none" stroke="{color}" stroke-width="2"{dash} points="{points}"/>'
+                     f'<line x1="{left}" x2="{left+30}" y1="{legend_y-5}" y2="{legend_y-5}" stroke="{color}" stroke-width="2"{dash}/>'
+                     f'<text x="{left+40}" y="{legend_y}">{escape(label)} ({style})</text>')
+    return f'<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Daily starts aligned by day of month; absent calendar days are gaps. Exact values follow in the table." viewBox="0 0 {left+610} 285"><title>Daily start counts</title><text x="230" y="275">Day of month</text>' + ''.join(lines) + '</svg>'
 
 
 def _archive(store, report, assets):
@@ -82,9 +92,34 @@ def _station_rows(items):
     return tuple((item.station_id, item.station_name, item.current_count, item.prior_count, item.delta, item.percentage_change if item.percentage_change is not None else 'N/A', item.eligible, item.eligibility_reason or '', item.status, item.materiality) for item in items)
 
 
+def _report_document(title, body):
+    """Self-contained readable report; generated HTML content must already be escaped."""
+    styles = """body{font:16px/1.6 system-ui;max-width:1100px;margin:1rem auto;padding:1rem;color:#172a36;background:#fff}
+    main{min-width:0}h1{font-size:clamp(1.5rem,4vw,2rem);line-height:1.25;overflow-wrap:anywhere}
+    h2{line-height:1.35}section{margin:2rem 0}table{border-collapse:collapse;width:100%;min-width:36rem}
+    th,td{border:1px solid #ccd4da;padding:.65rem;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+    th{background:#eef3f5}tbody tr:nth-child(even){background:#f7fafb}
+    .table-scroll,.chart-scroll{overflow-x:auto;margin:1rem 0;max-width:100%}
+    :focus-visible{outline:3px solid #155e75;outline-offset:3px}
+    svg{display:block;width:100%;min-width:670px;height:auto;font:14px system-ui}
+    .report-note{color:#425563;font-size:.95rem}
+    @media(max-width:600px){body{margin:0;padding:.75rem}th,td{padding:.5rem}}
+    @media print{body{max-width:none;margin:0}.table-scroll,.chart-scroll{overflow:visible}table{min-width:0}svg{min-width:0}}
+    """
+    return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            f'<title>{escape(title)}</title><style>{styles}</style></head><body>'
+            f'<main id="report-content"><h1>{escape(title)}</h1>{body}</main></body></html>')
+
+
+def _chart_region(svg):
+    return ('<div class="chart-scroll" tabindex="0" role="region" aria-label="Scrollable chart">'
+            + svg + '</div>')
+
+
 def _document(period, sections):
     body = ''.join(f'<section><h2>{escape(title)}</h2>{content}</section>' for title, content in sections)
-    return f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Monthly mobility baseline</title><style>body{{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:1rem;color:#172a36}}section{{margin:2rem 0}}table{{border-collapse:collapse;width:100%}}th,td{{border:1px solid #ccd4da;padding:.4rem;text-align:left;overflow-wrap:anywhere}}svg{{max-width:100%;height:auto}}th{{background:#eef3f5}}</style></head><body><h1>Monthly mobility baseline: {period.year:04d}-{period.month:02d}</h1>{body}</body></html>'
+    return _report_document(f'Monthly mobility baseline: {period.year:04d}-{period.month:02d}', body)
 
 
 def generate_standard_dashboard(store: DatasetStore, period: Period) -> BaselineReport:
@@ -162,8 +197,11 @@ def generate_standard_dashboard(store: DatasetStore, period: Period) -> Baseline
         for dimension in ('member_casual', 'rideable_type'):
             asset = _bars(dimension.replace('_', ' '), getattr(summary, dimension))
             assets[f'{ref.period.year:04d}_{ref.period.month:02d}_{dimension}.svg'] = asset
-            mix += asset
-    sections = (('KPI Scorecard', score), ('Daily Trend', assets['daily.svg']), ('Mix Breakdowns', mix), ('Top Stations / Movers', station_html), ('Data-Quality Summary', _quality(store, refs)))
+            mix += '<h4>' + escape(dimension.replace('_', ' ')) + '</h4>' + _chart_region(asset)
+            mix += _table(('Category', 'Trips', 'Share (%)'), ((_label(item.category), item.count, item.share) for item in getattr(summary, dimension)))
+    daily = _chart_region(assets['daily.svg']) + '<p>Absent calendar days are gaps, never zero. Exact daily starts:</p>'
+    daily += _table(('Month', 'Day of month', 'Starts'), ((f'{ref.period.year:04d}-{ref.period.month:02d}', day.day, day.count) for ref, trend in zip(refs, trends) for day in trend.days))
+    sections = (('KPI Scorecard', score), ('Daily Trend', daily), ('Mix Breakdowns', mix), ('Top Stations / Movers', station_html), ('Data-Quality Summary', _quality(store, refs)))
     report = BaselineReport(report_id=report_id, period=period, datasets=refs, html=_document(period, sections), evidence=tuple(evidence))
     _archive(store, report, assets)
     return report

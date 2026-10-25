@@ -2,6 +2,7 @@
 from contextlib import contextmanager, closing
 from collections.abc import Sequence
 from dataclasses import asdict, is_dataclass
+from datetime import datetime
 import hashlib
 import json
 import math
@@ -13,6 +14,7 @@ from uuid import uuid4
 from typing import Any, Protocol
 
 from mobility.ingestion import SourceManifest
+from mobility.lifecycle import expires_at, timestamp, utc_now
 
 import pandas as pd
 
@@ -30,6 +32,8 @@ class CleanedDataset(Protocol):
 
 
 class DatasetStore:
+    enforce_retention = True
+
     def __init__(self, root: Path) -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
@@ -44,6 +48,10 @@ class DatasetStore:
                 CREATE TABLE IF NOT EXISTS active (
                   year INTEGER, month INTEGER, version_id TEXT NOT NULL REFERENCES versions(version_id),
                   PRIMARY KEY(year, month));
+                CREATE TABLE IF NOT EXISTS retention (
+                  artifact_kind TEXT NOT NULL, artifact_id TEXT NOT NULL,
+                  uploaded_at TEXT NOT NULL,
+                  PRIMARY KEY(artifact_kind, artifact_id));
             ''')
 
     @contextmanager
@@ -96,7 +104,9 @@ class DatasetStore:
                 'categories': categories}
 
     def prepare_version(self, period: Period, frame: pd.DataFrame, quality: QualitySummary,
-                        sources: tuple[SourceEvidence, ...] = ()) -> DatasetReference:
+                        sources: tuple[SourceEvidence, ...] = (),
+                        uploaded_at: datetime | None = None) -> DatasetReference:
+        upload_time = timestamp(uploaded_at if uploaded_at is not None else utc_now())
         metrics = self._metrics(frame, quality)
         dates = self._dates(frame['started_at'])
         if not ((dates.dt.year == period.year) & (dates.dt.month == period.month)).all():
@@ -109,6 +119,8 @@ class DatasetStore:
         with self._connect() as db:
             db.execute('INSERT INTO versions VALUES (?, ?, ?, ?, 1)',
                        (version_id, period.year, period.month, digest))
+            db.execute('INSERT INTO retention VALUES (?, ?, ?)',
+                       ('version', version_id, upload_time))
         return reference
 
     @staticmethod
@@ -144,8 +156,17 @@ class DatasetStore:
         self._sync_directory(directory.parent)
         return digest
 
+    def is_expired(self, reference: DatasetReference, now: datetime | None = None) -> bool:
+        with self._connect() as db:
+            row = db.execute(
+                "SELECT uploaded_at FROM retention WHERE artifact_kind='version' AND artifact_id=?",
+                (reference.version_id,)).fetchone()
+        return row is not None and expires_at(row[0]) <= (now if now is not None else utc_now())
+
     def _resolve(self, reference):
         reference = DatasetReference.model_validate(reference)
+        if self.enforce_retention and self.is_expired(reference):
+            raise ValueError('Dataset retention period has expired')
         with self._connect() as db:
             row = db.execute('SELECT year, month, sha256, complete FROM versions WHERE version_id=?',
                              (reference.version_id,)).fetchone()
@@ -168,8 +189,9 @@ class DatasetStore:
             db.execute('INSERT INTO active VALUES (?, ?, ?) ON CONFLICT(year, month) DO UPDATE SET version_id=excluded.version_id',
                        (reference.period.year, reference.period.month, reference.version_id))
 
-    def persist_and_activate(self, cleaned: CleanedDataset) -> DatasetReference:
-        reference = self.prepare_version(cleaned.period, cleaned.frame, cleaned.quality, getattr(cleaned, 'manifest', getattr(cleaned, 'sources', ())))
+    def persist_and_activate(self, cleaned: CleanedDataset,
+                             uploaded_at: datetime | None = None) -> DatasetReference:
+        reference = self.prepare_version(cleaned.period, cleaned.frame, cleaned.quality, getattr(cleaned, 'manifest', getattr(cleaned, 'sources', ())), uploaded_at=uploaded_at)
         self.activate(reference)
         return reference
 
@@ -182,7 +204,10 @@ class DatasetStore:
                                  (period.year, period.month)).fetchone()
                 if row is None:
                     raise KeyError(f'No active dataset for {period.year:04d}-{period.month:02d}')
-                references.append(DatasetReference(period=period, version_id=row[0], sha256=row[1]))
+                reference = DatasetReference(period=period, version_id=row[0], sha256=row[1])
+                if self.enforce_retention and self.is_expired(reference):
+                    raise KeyError(f'No active dataset for {period.year:04d}-{period.month:02d}')
+                references.append(reference)
         return tuple(references)
 
     def read_frame(self, reference: DatasetReference) -> pd.DataFrame:
@@ -219,11 +244,15 @@ class DatasetStore:
     def list_active(self) -> tuple[DatasetReference, ...]:
         with self._connect() as db:
             rows = db.execute('SELECT a.year, a.month, v.version_id, v.sha256 FROM active a JOIN versions v ON a.version_id=v.version_id WHERE v.complete=1 ORDER BY a.year, a.month').fetchall()
-        return tuple(DatasetReference(period=Period(year=row[0], month=row[1]),
-                                      version_id=row[2], sha256=row[3]) for row in rows)
+        references = tuple(DatasetReference(period=Period(year=row[0], month=row[1]),
+                                            version_id=row[2], sha256=row[3]) for row in rows)
+        return tuple(reference for reference in references
+                     if not self.enforce_retention or not self.is_expired(reference))
 
     def record_rejection(self, upload_id: str, quality: QualitySummary,
-                         sources: Sequence[SourceEvidence] = ()) -> Path:
+                         sources: Sequence[SourceEvidence] = (),
+                         uploaded_at: datetime | None = None) -> Path:
+        upload_time = timestamp(uploaded_at if uploaded_at is not None else utc_now())
         if not re.fullmatch(r'[A-Za-z0-9_-]{1,128}', upload_id):
             raise ValueError('Invalid upload ID')
         path = self.root / 'rejections' / f'{upload_id}_{uuid4().hex}.json'
@@ -232,4 +261,7 @@ class DatasetStore:
             file.flush()
             os.fsync(file.fileno())
         self._sync_directory(path.parent)
+        with self._connect() as db:
+            db.execute('INSERT INTO retention VALUES (?, ?, ?)',
+                       ('rejection', path.name, upload_time))
         return path

@@ -7,11 +7,17 @@ type Value = { entity_id?: string; metric_type: string; dimension?: string | nul
 type Trace = { tool_name: string; status: string; arguments?: Record<string, unknown>; values?: Value[] };
 type AgentRun = { run_id: string; status: 'complete' | 'partial' | 'refused'; report_html: string; warning?: string | null; candidate_id?: string | null; stages: Stage[]; trace: Trace[]; station_choices?: { station_id: string; station_name: string }[] };
 
+const toolLabels: Record<string, string> = { kpi_summary: 'Monthly metrics', compare_periods: 'Month comparison', daily_trend: 'Daily trip starts', station_analysis: 'Station rankings', retrieve_context: 'Reporting guidance', validate_and_load_file: 'Data validation', station_movers: 'Station changes', analyze_station_variance: 'Station change breakdown', generate_standard_dashboard: 'Standard monthly dashboard', get_available_periods: 'Available reporting months', resolve_station: 'Station lookup', make_chart: 'Verified chart' };
+const readable = (name: string) => name.replaceAll('_', ' ');
+const contextValue = (value: unknown) => {
+  if (value && typeof value === 'object' && 'year' in value && 'month' in value) return `${value.year}-${String(value.month).padStart(2, '0')}`;
+  return typeof value === 'string' ? value : JSON.stringify(value);
+};
 const stageNames = ['Data Ingest', 'Agent Planning', 'Tool Execution', 'Final Report Generation'];
 const formatPercent = (value: number | null | undefined) => typeof value === 'number' ? `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value)}%` : 'unavailable';
 const formatValue = (value: Value) => value.eligible && typeof value.exact_tool_value === 'number'
   ? `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(value.exact_tool_value)} ${value.unit || ''}`
-  : value.eligibility_reason || 'unavailable';
+  : value.eligibility_reason?.replaceAll('_', ' ') || 'unavailable';
 
 export default function AgentPanel({ period, command, busy }: { period: string; command: string; busy: boolean }) {
   const [running, setRunning] = useState(false);
@@ -84,10 +90,12 @@ export default function AgentPanel({ period, command, busy }: { period: string; 
     } finally { setRunning(false); }
   }
 
-  return <section aria-labelledby="agent-heading" className="panel mt-6">
+  return <section id="agent" aria-labelledby="agent-heading" className="panel mt-6">
     <h2 id="agent-heading">Agent analysis</h2>
     <p className="mt-2 text-sm text-slate-700">The agent can investigate verified aggregate metrics. Reports use the selected month’s active dataset.</p>
     <button type="button" className="mt-4" disabled={!validPeriod || !command.trim() || busy || running} onClick={() => void analyze()}>{running ? 'Running agent analysis…' : 'Run agent analysis'}</button>
+    {(!validPeriod || !command.trim()) && <p className="mt-3">Select a reporting month and enter an analysis request above.</p>}
+    {liveForCurrent && <p role="status" className="mt-3">Analysis in progress for {runningPeriod}. {liveStages.at(-1)?.name || 'Preparing request'}: {liveStages.at(-1)?.status || 'starting'}.</p>}
     {error && runningPeriod === period && runningCommand === command && <p role="alert" className="mt-3">{error}</p>}
     <h3 className="mt-6 font-semibold">Progress</h3>
     <ol className="mt-2 grid gap-2 sm:grid-cols-2" aria-label="Agent stages">
@@ -95,20 +103,22 @@ export default function AgentPanel({ period, command, busy }: { period: string; 
     </ol>
     {visibleRun?.warning && <p role="alert" className="mt-4">{visibleRun.warning}</p>}
     {visibleRun && <>
-      <p className="mt-4">{visibleRun.status === 'complete' ? `Agent report ready for ${runPeriod}.` : visibleRun.status === 'partial' ? 'Agent analysis partial. Baseline report available.' : 'Request refused.'}</p>
+      <p role="status" className="mt-4">{visibleRun.status === 'complete' ? `Agent report ready for ${runPeriod}.` : visibleRun.status === 'partial' ? 'Agent analysis partial. Baseline report available.' : 'Request refused.'}</p>
     </>}
     {visibleRun?.station_choices && visibleRun.station_choices.length > 0 && <ul aria-label="Agent matching stations">{visibleRun.station_choices.map(choice => <li key={choice.station_id}><button type="button" disabled={busy || running} onClick={() => void analyze(choice.station_id)}>Analyze {choice.station_name} ({choice.station_id})</button></li>)}</ul>}
     {(visibleRun?.candidate_id || (liveForCurrent && liveCandidate)) && <p className="mt-2">Mandatory investigation candidate: {visibleRun?.candidate_id || liveCandidate}</p>}
       {displayTrace.length > 0 && <section aria-label="Agent tool activity" className="mt-4">
         <h3 className="font-semibold">Tool activity</h3>
+        <p className="text-sm">Verified aggregate results. Tool activity shows calculations and their inputs, not private model reasoning.</p>
         <ol className="mt-2 space-y-3">{displayTrace.map((step, index) => <li key={`${step.tool_name}-${index}`} className="rounded border border-slate-300 p-3">
-          <p><strong>{step.tool_name}</strong>: {step.status}{step.tool_name.includes('variance') ? ' · adaptive follow-up' : ''}</p>
-          {step.arguments && Object.keys(step.arguments).length > 0 && <p className="text-sm">Arguments: {JSON.stringify(step.arguments)}</p>}
+          <p><strong>{toolLabels[step.tool_name] || readable(step.tool_name)}</strong>: {step.status}{step.tool_name.includes('variance') ? ' · adaptive follow-up' : ''}</p>
+          {step.arguments && <dl className="mt-2 text-sm">{Object.entries(step.arguments).filter(([key, value]) => value != null && ['station_id', 'period', 'current_period', 'comparison_period', 'prior_period'].includes(key)).map(([key, value]) => <div key={key}><dt className="inline font-semibold">{readable(key)}: </dt><dd className="inline">{contextValue(value)}</dd></div>)}</dl>}
+          <details className="text-sm"><summary>Exact tool identity and inputs</summary><p>{step.tool_name}</p>{step.arguments && <p>Arguments: {JSON.stringify(step.arguments)}</p>}</details>
           {step.tool_name === 'analyze_station_variance' && step.values?.some(value => value.metric_type === 'contribution')
             ? <ul className="text-sm" aria-label="Variance breakdowns">{step.values.filter(value => value.metric_type === 'contribution').map((value, i) =>
-                <li key={i}>{value.dimension?.replaceAll('_', ' ')} · {value.category}: {value.eligible ? formatPercent(value.exact_tool_value) : value.eligibility_reason || 'unavailable'}</li>)}</ul>
+                <li key={i}>{value.dimension?.replaceAll('_', ' ')} · {value.category === 'Unknown' ? 'Unknown (unclassified)' : value.category}: {value.eligible ? formatPercent(value.exact_tool_value) : value.eligibility_reason?.replaceAll('_', ' ') || 'unavailable'}</li>)}</ul>
             : step.values && step.values.length > 0 && <><ul className="text-sm" aria-label="Aggregate results">{step.values.slice(0, 30).map((value, i) =>
-                <li key={i}>{value.entity_id || 'Aggregate'} · {value.metric_type}: {formatValue(value)}</li>)}</ul>
+                <li key={i}>{value.entity_id || 'Aggregate'} · {readable(value.metric_type)}: {formatValue(value)}</li>)}</ul>
                 {step.values.length > 30 && <p className="text-sm">Additional aggregate values are stored in the run evidence.</p>}</>}
         </li>)}</ol>
       </section>}

@@ -16,6 +16,8 @@ const backendURL=`http://127.0.0.1:${backendPort}`;
 const frontendURL=`http://127.0.0.1:${frontendPort}`;
 export default defineConfig({
  testDir:'./e2e',
+ // All tests share one backend store, whose approved policy permits one ingestion.
+ workers:1,
  use:{baseURL:frontendURL,channel:'chromium'},
  webServer:[
   {command:`${python} -m uvicorn mobility.app:app --host 127.0.0.1 --port ${backendPort} --no-access-log`,url:`${backendURL}/health`,env:{MOBILITY_DATA_ROOT:dataRoot},reuseExistingServer:false},

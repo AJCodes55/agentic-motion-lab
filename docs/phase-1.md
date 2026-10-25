@@ -14,7 +14,7 @@ From `backend/`:
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
 .venv/bin/python -m pip install --no-deps -e .
-.venv/bin/python -m uvicorn mobility.app:app --host 127.0.0.1 --port 8000 --no-access-log
+PYTHONPATH=src MOBILITY_DATA_ROOT="$PWD/.local-data" .venv/bin/python -m uvicorn mobility.app:app --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
 In another terminal, from `frontend/`:
@@ -85,3 +85,7 @@ On 2026-10-18, `npm audit --omit=dev` reported zero vulnerabilities. The full au
 Turbopack's CSS IPC was blocked by the execution environment. The `dev` and `build` scripts explicitly select webpack, which successfully builds this application. Browser tests use the matching full Chromium browser. The outage browser test simulates an unavailable response; the second test uses the actual running backend through the proxy. These are foundation checks, not execution of the 44 Phase 0 analytical and ingestion specifications. Following initial publication, [GitHub CI](https://github.com/AJCodes55/agentic-motion-lab/actions/runs/39163539007) started; it was still running at this documentation update.
 
 Tests were authored before implementation; initial baseline runs were blocked by missing dependencies, so a full initial red/green cycle is not claimed. The final logging/year-bound fix has demonstrated failing and passing regression checks. No production upload endpoint, dataset activation, grounded report, or hosted release is represented as verified here.
+
+## Dependency Audit Refresh — 2026-10-24
+
+Before the authorized Phase 6 commit/push, both `npm audit --omit=dev` and full `npm audit` reported zero known vulnerabilities. Python's pinned requirements audit covered 31 packages with no known vulnerabilities. No dependency versions were changed for this publication. Earlier nonzero development audit results above remain historical observations, not the current audit result.

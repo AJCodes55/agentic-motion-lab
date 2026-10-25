@@ -7,7 +7,7 @@ from pydantic import Field, model_validator
 
 from mobility.agent_tools import AgentTools
 from mobility.analytics import prior_period
-from mobility.baseline import BaselineReport, generate_standard_dashboard, _table
+from mobility.baseline import BaselineReport, generate_standard_dashboard, _table, _report_document, _chart_region
 from mobility.contracts import Contract, DatasetReference, Period, ToolArguments, ToolResult
 from mobility.storage import DatasetStore
 
@@ -144,7 +144,10 @@ class AdhocService:
         if chart:
             evidence += (result.model_copy(update={'tool_name': 'make_chart', 'tool_call_id': 'adhoc_chart', 'stage': 'rendering'}),)
         rows = ((f'{v.period.year:04d}-{v.period.month:02d}', (v.category or v.entity_id).replace('Unknown', 'Unknown (unclassified)'), v.metric_type, _display(v.exact_tool_value), v.unit, v.eligibility_reason or '') for v in values)
-        html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Supported ad-hoc analysis</title></head><body>' + f'<h1>{escape(title)}</h1>' + _table(('Month', 'Entity / category', 'Metric', 'Value', 'Unit', 'Eligibility reason'), rows) + (chart or '') + '</body></html>'
+        body = _table(('Month', 'Entity / category', 'Metric', 'Value', 'Unit', 'Eligibility reason'), rows)
+        if chart:
+            body += '<p class="report-note">Exact values are provided in the table. Scroll the chart horizontally on narrow screens.</p>' + _chart_region(chart)
+        html = _report_document(title, body)
         output = AdhocResult(status='success', message=title, period=request.period,
             report_id=baseline.report_id, datasets=refs, html=html, evidence=evidence, chart_svg=chart)
         self._persist(output)

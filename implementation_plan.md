@@ -22,7 +22,8 @@ At planning time, the workspace contained requirements and proposal documents, w
 | Reliable reporting baseline | 2–3 | Upload → cleaned data → verified dashboard |
 | Agentic MVP | 4 | Initial analysis → adaptive investigation → grounded report |
 | Feature-complete version | 5 | Supported ad-hoc questions, charts, and archived reports |
-| Polished release candidate | 6–7 | Usable interface, evaluated behavior, repeatable demo |
+| Polished release candidate | 6–7, local | Usable interface, evaluated behavior, repeatable local demo |
+| Hosted demo for recruiters | Final deployment stage after 7 | Verified hosted access after credits, hosting decisions and deployment approval |
 
 ## 3. Phase 0 — Finalize Inputs and Acceptance Rules
 
@@ -181,6 +182,26 @@ The application covers the complete agreed analytical scope, with clear boundari
 
 ## 9. Phase 6 — Interface Polish and Operational Hardening
 
+**Scope decision (2026-10-22, D20–D21):** This phase currently targets a local single-user application. Hosting remains outstanding. The eventual agent system must support **100+ users**; this is a future requirement, not verified capacity. “100+ users” does not yet specify simultaneous requests, dataset sizes, isolation model or latency targets. Preserve the present local foundation; before hosting, design and test authorization, dataset/report isolation, shared storage and bounded workloads against agreed acceptance conditions.
+
+**Local work implemented and verified (2026-10-22):** loading/empty/error polish, keyboard navigation, mobile layouts, understandable quality/tool activity, readable reports with exact chart tables, offline integrity diagnostics and an isolated backup/restore rehearsal. Backend: 214 tests, 94.14% coverage; frontend: 68 tests, 84.95% branch coverage; browser: 8/8. Production build, lint, typecheck and contract checks passed. Evidence and precise limits are in [Phase 6](docs/phase-6.md).
+
+**Local operational completion (D26–D29):** Retention/cleanup and backup/recovery tooling are now implemented and backend-verified locally (254 tests, 93.14% coverage); all eight browser checks also pass with a production frontend build. Existing shared-store tests now run serially to respect the approved single-ingestion policy. Evidence and manual/hosted limits are in the Phase 6 runbook. Earlier “local scope verified” referred to interface polish and recovery foundations, not completed operational requirements.
+
+**Deferred hosted work and deployment gates (D25):** Hosted requirements remain deferred. Complete Phase 7 locally; carry the following hosted requirements into the final deployment stage instead of blocking local evaluation.
+
+| Area | Remaining decision and verification before affected behavior or deployment |
+| --- | --- |
+| Hosting and 100+ users | Select provider, topology, persistent storage, intended workload and latency/cost targets. Design and load-test 100+ user access, including simultaneous report/model calls, uploads and replacement/archive reads. Local tests do not establish this capacity. |
+| Authentication and user isolation | Select identities/access policy and shared versus private dataset/report/history boundaries. Implement and test authorization on every affected endpoint, storage object and credential path. Current service is unauthenticated and local only. |
+| Concurrency and capacity | Define hosted worker count, request/model limits, queue/rejection/cancellation behavior and storage/memory budgets. Retain approved local upload/expansion limits and single-ingestion locking; do not treat those locks as hosted capacity controls. |
+| Retention and cleanup | D26/D29 resolve local six-calendar-month upload clocks and artifact expiry. Local read gates, dry-run cleanup, report/quarantine reference handling and resumable deletion are implemented. Legacy/unknown artifacts remain preserved. Physical cleanup/pruning is manual; hosted scheduling and any legacy-date adoption require follow-up. See Phase 6 runbook. |
+| Backup and recovery | D27/D28 approve event-triggered backups, new-directory restore, RPO24h and RTO1h. Local checksum/evidence validation, expiry-aware snapshots/pruning and failure tests are implemented; a 4.14 MB synthetic restore took 2.169s; the first actual-data 18.25 MB/13-report restore took 2.425s and verified both working months. Operator must select a separate backup location and run at least daily during changes for freshness. Hosted destination, scheduling, access/encryption, ownership and scale/hardware recovery remain unverified. |
+
+D26–D29 resolve local retention and recovery policy portions; manual destructive cleanup and backup tools are implemented without running them on existing data. Hosted implementation, unattended scheduling, failover and production readiness remain deferred/unverified. Local accessibility browser checks cover keyboard/mobile flows; broader assistive-technology/browser evaluation and representative end-to-end latency/cost profiling remain limits.
+
+**Vercel preparation (2026-10-24, D22):** Root multi-service routing and runtime binding preparation is authorized and locally verified with Vercel CLI 65.2.0 (health/period proxies and internal-only backend routing); 75 frontend tests, lint/typecheck and production build pass. Actual deployment remains blocked on a durable backend storage decision. Service names, frontend-owned public routing and private backend binding were approved under D23. D25 defers actual deployment to the final stage; retain this configuration as prior preparation rather than treating it as the selected Render setup. The existing SQLite/CSV/report storage cannot become durable by moving to `/tmp`; upload transport also needs to reconcile approved sizes with Vercel's Function body limit. Access protection, shared-state concurrency, retention and recovery gates remain. See [configuration and deployment gates](docs/phase-6.md#vercel-services-preparation--2026-10-24).
+
 ### Features and Tasks
 
 - Improve loading, empty, rejected-upload, unavailable-period, and partial-report states.
@@ -214,6 +235,22 @@ Evaluation fixtures begin in Phase 0; this phase completes the comparative asses
 
 Another team member can reproduce the demo and evaluation from the documented inputs.
 
+## Final Deployment Stage — After Phase 7
+
+**Status: deferred by the user on 2026-10-24 (D25).** Render credits have not activated. Continue local development, evaluation and demo preparation. Hosted deployment is the final stage and is not required to complete the local evaluation. Existing local SQLite/CSV storage and approved request behavior remain unchanged.
+
+Preserve `vercel.json`, binding-aware frontend proxies, `.vercelignore` and the recorded local Vercel rehearsal as useful preparation. Do not deploy them as a complete solution to persistence. Render hosting for both services with a persistent backend disk was recommended, not selected or configured. D23 approves the earlier frontend-public/backend-private routing; revisit provider-specific networking if choosing Render.
+
+When the user returns to deployment:
+
+1. Confirm Render credits are active, approve the plan/budget and choose the final provider/topology. If choosing Render, prepare the service/disk configuration; if keeping Vercel, resolve its persistence and upload constraints first.
+2. Verify durable storage for SQLite, datasets, versions and archived report evidence. Reconcile provider upload/time/resource limits with approved behavior, and test replacement, restart and recovery without losing provenance.
+3. Decide recruiter/demo access protection and permissions for uploads and paid model calls. Define shared versus per-user data, quotas and hosted concurrency; retain the future 100+ user goal without claiming verified capacity.
+4. Resolve retention clock/coverage, backup destination/lifecycle and recovery objectives. Configure server-only secrets, then run hosted builds, workflow/fallback checks and backup/restore verification.
+5. Deploy with the user's authorization and verify the actual URL before sharing it with recruiters. Record measured results and remaining limits in the existing docs.
+
+Credit activation alone is not deployment approval. No paid resources, cloud storage migration or deployment should be started during the deferral. Current local setup instructions remain in [Phase 1](docs/phase-1.md); later behavior and operating limits are documented in [Phase 6](docs/phase-6.md).
+
 ## 11. Main Risks and Controls
 
 | Risk | Control |
@@ -223,11 +260,11 @@ Another team member can reproduce the demo and evaluation from the documented in
 | Mandatory investigation exceeds budget | Test representative call sequences early; retain enforced limits and deterministic fallback |
 | Replacement mixes dataset versions | Immutable artifacts, transactional activation, and pinned run references |
 | Agent adds little beyond preset analysis | Measure verified follow-up decomposition against the identical fixed baseline |
-| Deployment scope expands late | Resolve operational requirements before Phase 6 |
+| Deployment scope expands late | Keep local evaluation independent; resolve hosted requirements in the final deployment stage under D25 before exposure |
 
 ## 12. Dependencies and Implementation Gate
 
-**Phase sequence:** 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7.
+**Phase sequence:** 0 → 1 → 2 → 3 → 4 → 5 → 6 (local scope) → 7 (local evaluation/demo) → final hosted deployment stage (deferred, D25).
 
 Testing and evaluation preparation run throughout; they are not postponed until the end. Each phase must satisfy its exit condition before dependent functionality is considered complete.
 

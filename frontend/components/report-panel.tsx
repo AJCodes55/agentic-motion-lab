@@ -5,11 +5,12 @@ import { useState } from 'react';
 export default function ReportPanel({ period, busy }: { period: string; busy: boolean }) {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
+  const [requestPeriod, setRequestPeriod] = useState('');
   const [report, setReport] = useState<{ period: string; html: string } | null>(null);
   const validPeriod = /^\d{4}-(0[1-9]|1[0-2])$/.test(period);
 
   async function generate() {
-    setRunning(true); setError(''); setReport(null);
+    setRequestPeriod(period); setRunning(true); setError(''); setReport(null);
     const [year, month] = period.split('-').map(Number);
     try {
       const response = await fetch('/api/reports', {
@@ -25,12 +26,13 @@ export default function ReportPanel({ period, busy }: { period: string; busy: bo
     } finally { setRunning(false); }
   }
 
-  return <section aria-labelledby="report-heading" className="panel mt-6">
+  return <section id="baseline" aria-labelledby="report-heading" className="panel mt-6">
     <h2 id="report-heading">Report</h2>
     <p className="mt-2 text-sm text-slate-700">Generate the standard monthly baseline from the selected month’s active dataset. No AI calls are used.</p>
     <button type="button" className="mt-4" disabled={!validPeriod || busy || running} onClick={() => void generate()}>{running ? 'Generating baseline report…' : 'Generate baseline report'}</button>
-    {running && <p role="status">Computing verified monthly metrics…</p>}
-    {error && <p role="alert">{error}</p>}
-    {report ? <><p className="mt-3">Report ready for {report.period}.</p><iframe title={`Baseline report for ${report.period}`} sandbox="" referrerPolicy="no-referrer" srcDoc={report.html} className="mt-4 min-h-[48rem] w-full border-0" /></> : <p className="mt-3">No report yet.</p>}
+    {!validPeriod && <p className="mt-3">Select a reporting month above, then load its data to generate a report.</p>}
+    {running && requestPeriod === period && <p role="status">Computing verified monthly metrics…</p>}
+    {error && requestPeriod === period && <p role="alert">{error}</p>}
+    {report && report.period === period ? <><p role="status" className="mt-3">Report ready for {report.period}.</p><iframe title={`Baseline report for ${report.period}`} sandbox="" referrerPolicy="no-referrer" srcDoc={report.html} className="mt-4 min-h-[48rem] w-full border-0" /></> : <p className="mt-3">No report yet.</p>}
   </section>;
 }

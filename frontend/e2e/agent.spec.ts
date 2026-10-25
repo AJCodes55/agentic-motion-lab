@@ -24,7 +24,7 @@ test('runs an agent request and exposes the adaptive aggregate follow-up', async
   await page.getByLabel('Analysis request').fill('Investigate declining stations');
   await page.getByRole('button', { name: 'Run agent analysis' }).click();
   await expect(page.getByText('Agent report ready for 2026-02.')).toBeVisible();
-  await expect(page.getByText(/analyze_station_variance/)).toBeVisible();
+  await expect(page.getByText('Station change breakdown')).toBeVisible();
   await expect(page.getByText('Mandatory investigation candidate: HB106')).toBeVisible();
   await expect(page.getByText('member casual · Casual: 30.36%')).toBeVisible();
   await expect(page.frameLocator('iframe[title="Agent report for 2026-02"]').getByRole('heading', { name: 'Verified report' })).toBeVisible();

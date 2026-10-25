@@ -51,3 +51,22 @@ test('handles HTTP rejection without claiming activation',async()=>{
  fireEvent.click(screen.getByRole('button',{name:'Fetch public Citi Bike data'}));
  expect(await screen.findByRole('alert')).toHaveTextContent('Busy. Retry later.');
 });
+test('distinguishes loading months from an empty store and offers refresh',async()=>{
+ let resolve!: (value: unknown)=>void;
+ vi.stubGlobal('fetch',vi.fn().mockImplementation(()=>new Promise(value=>{resolve=value;})));
+ render(<UploadPanel period="2026-02" onBusy={()=>{}}/>);
+ expect(screen.getByRole('status')).toHaveTextContent('Loading available months');
+ expect(screen.queryByText('No accepted datasets available.')).not.toBeInTheDocument();
+ await vi.waitFor(()=>expect(resolve).toBeDefined());
+ resolve({ok:true,json:async()=>({success:true,data:{periods:[]}})});
+ expect(await screen.findByText('No accepted datasets available.')).toBeInTheDocument();
+ expect(screen.getByRole('button',{name:'Refresh available months'})).toBeEnabled();
+});
+test('explains retained Unknown categories separately from row exclusions',async()=>{
+ mocks({results:[{period:dataset.period,status:'accepted',dataset,quality:{...quality,unknown_member_rows:2,unknown_bike_rows:1},message:'Activated'}]});
+ render(<UploadPanel period="2026-02" onBusy={()=>{}}/>);
+ fireEvent.click(screen.getByRole('button',{name:'Fetch public Citi Bike data'}));
+ await screen.findByText('Activated');
+ expect(screen.getByText(/Unknown categories remain in valid trips/)).toBeInTheDocument();
+ expect(screen.getByText('Unknown rider category')).toBeInTheDocument();
+});

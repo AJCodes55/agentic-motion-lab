@@ -1,3 +1,5 @@
+import { backendUrl } from '../../lib/backend-url';
+
 const headers = { 'Cache-Control': 'no-store' };
 function failure(status: number, code: string, message: string) {
   return Response.json({ success: false, data: null, error: { code, message } }, { status, headers });
@@ -44,7 +46,7 @@ export async function proxy(path: '/ingestions' | '/ingestions/fetch' | '/period
       let offset = 0;
       for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
     }
-    const response = await fetch(new URL(path, process.env.BACKEND_URL || 'http://127.0.0.1:8000'), {
+    const response = await fetch(backendUrl(path), {
       method: request ? 'POST' : 'GET', cache: 'no-store', signal: AbortSignal.timeout(path === '/agent-runs' ? 180_000 : 120_000),
       ...(request ? { headers: { 'Content-Type': request.headers.get('content-type')! }, body: body as BodyInit } : {}),
     });

@@ -14,7 +14,7 @@ test('selects an ambiguous station and opens archived verified answer', async ({
   await page.goto('/');
   await page.getByLabel('Reporting month').fill('2026-02');
   await page.getByLabel('Supported metric').selectOption('station_starts');
-  await page.getByLabel('Station name or ID (optional)').fill('Park');
+  await page.getByLabel('Station name or ID').fill('Park');
   await page.getByLabel('Compare with previous month').check();
   await page.getByLabel('Include chart').check();
   await page.getByRole('button', { name: 'Run supported query' }).click();

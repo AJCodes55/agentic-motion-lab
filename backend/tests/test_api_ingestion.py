@@ -92,10 +92,10 @@ def test_global_expanded_budget_precedes_activation(tmp_path):
 def test_storage_failure_partial_result(client, monkeypatch):
     from mobility.storage import DatasetStore
     original = DatasetStore.persist_and_activate
-    def persist(self, cleaned):
+    def persist(self, cleaned, **kwargs):
         if cleaned.period.month == 1:
             raise OSError('sensitive disk detail')
-        return original(self, cleaned)
+        return original(self, cleaned, **kwargs)
     monkeypatch.setattr(DatasetStore, 'persist_and_activate', persist)
     second = source([row(started_at='2026-02-01 00:00:00', ended_at='2026-02-01 00:01:00')], 'JC-202602-citibike-tripdata.csv')
     response = upload(client, source([row()]), second)

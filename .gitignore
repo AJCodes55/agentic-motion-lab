@@ -32,3 +32,9 @@
 /Agentic AI Project Proposal - Chat Log.md
 /Project Proposal - Citi Bike Reporting Workflow.docx
 /agentic_executive_mobility_dashboard.md
+
+# Vercel local project metadata and generated service files
+.vercel/
+
+# Python package build output from the Vercel install command
+/backend/build/

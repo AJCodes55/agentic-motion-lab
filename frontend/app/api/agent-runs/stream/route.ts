@@ -1,3 +1,5 @@
+import { backendUrl } from '../../../../lib/backend-url';
+
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
@@ -22,7 +24,7 @@ export async function POST(request: Request) {
     const body = new Uint8Array(size);
     let offset = 0;
     for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
-    const backend = await fetch(new URL('/agent-runs/stream', process.env.BACKEND_URL || 'http://127.0.0.1:8000'), {
+    const backend = await fetch(backendUrl('/agent-runs/stream'), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
       cache: 'no-store', signal: AbortSignal.timeout(180_000),
     });

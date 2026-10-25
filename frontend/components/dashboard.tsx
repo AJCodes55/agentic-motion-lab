@@ -38,12 +38,14 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+      <a href="#request-heading" className="skip-link">Skip to reporting controls</a>
       <header className="mb-8">
         <p className="text-sm font-semibold uppercase tracking-widest text-teal-800">Citi Bike · Jersey City</p>
         <h1 className="mt-2 text-3xl font-bold">Mobility reporting workspace</h1>
         <p className="mt-3 text-slate-700">Upload monthly data or fetch it from public Citi Bike S3.</p>
       </header>
+      <nav aria-label="Workspace sections" className="workspace-nav mb-6"><a href="#data">Data</a><a href="#request-heading">Reporting month</a><a href="#agent">Agent analysis</a><a href="#queries">Supported queries</a><a href="#baseline">Baseline report</a><a href="#history">Report history</a></nav>
       <section aria-labelledby="service-heading" className="panel mb-6 flex flex-wrap items-center justify-between gap-4">
         <div><h2 id="service-heading">Service connection</h2><p role="status" aria-live="polite">{connection}</p></div>
         <button type="button" onClick={() => { setChecking(true); setConnection('Checking backend…'); void checkConnection(); }} disabled={checking}>Check connection</button>
@@ -51,13 +53,13 @@ export default function Dashboard() {
       <div className="grid gap-6 md:grid-cols-2">
         <UploadPanel period={period} onBusy={setIngesting} />
         <section aria-labelledby="request-heading" className="panel">
-          <h2 id="request-heading">2. Describe the report</h2>
+          <h2 id="request-heading" tabIndex={-1}>2. Describe the report</h2>
           <label htmlFor="period" className="mt-4 block font-medium">Reporting month</label>
           <input id="period" type="month" required value={period} onChange={event => setPeriod(event.target.value)} aria-describedby="period-help" />
-          <p id="period-help" className="mt-1 text-sm text-slate-700">Choose a month explicitly for public retrieval and baseline reports.</p>
+          <p id="period-help" className="mt-1 text-sm text-slate-700">Choose a month explicitly for public retrieval and reports. A selected month must have accepted data before analysis.</p>
           <label htmlFor="command" className="mt-4 block font-medium">Analysis request</label>
           <textarea aria-describedby="command-help" id="command" value={command} onChange={event => setCommand(event.target.value)} rows={3} placeholder="Describe the metrics and stations to explore" maxLength={2000} />
-          <p id="command-help" className="mt-2 text-sm text-slate-700">Ask the agent to investigate verified monthly or station trends.</p>
+          <p id="command-help" className="mt-2 text-sm text-slate-700">Ask the agent to investigate verified monthly or station trends. Each request stands alone; previous analytical requests are not retained.</p>
         </section>
       </div>
       <AgentPanel period={period} command={command} busy={ingesting} />

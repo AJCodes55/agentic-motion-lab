@@ -341,6 +341,14 @@ Validate uploads, archive contents, requests, and tool contracts. Treat station 
 
 The LLM must not execute arbitrary generated code. Authentication, capacity, resource limits, retention, and recovery operations require the decisions below before claiming production readiness.
 
+### 13.1. Approved local retention and recovery (D26–D29)
+
+- Retention is six calendar months from each version's recorded upload timestamp, independent of reporting month. Use timezone-aware UTC; clamp nonexistent month-end days. Reupload creates a separate version/clock; activation, reads, reports and restore never reset an existing clock.
+- At expiry, normal dataset/report access is unavailable. Explicit offline cleanup deletes the expired version's CSV/KPI/metadata and every dependent report directory, including charts/evidence/agent/ad-hoc artifacts. A report expires with its earliest-expiring baseline dependency. Rejection/quarantine records receive upload clocks and shared quarantine bytes remain until all related records expire. Unknown/incomplete artifacts are preserved rather than guessed safe to delete.
+- Existing uploads without recorded timestamps remain preserved until the user supplies original dates. Never infer upload time from the reporting period or filesystem timestamps.
+- Create verified backups before risky changes and after important demo preparation. Restore only into a new directory; preserve source snapshots and original expiry dates. Managed backups expire as whole snapshots at the earliest known included artifact expiry. This may remove legacy copies in that snapshot while preserving undated uploads in the working store; maintain separate legacy recovery copies when needed. Explicit prune must report that fact.
+- RPO is a target of at most 24 hours of lost changes; RTO is a target of one hour. Expose measured backup age and restore duration. Event-only manual backups do not guarantee RPO; daily backups during ongoing changes and a separate durable storage location are operator requirements. Local fixture measurements are not hosted or hardware-loss guarantees.
+
 ## 14. Explicit Pending Project Inputs
 
 Phase 0 records live in [the dataset manifest](docs/phase-0/dataset-manifest.md), [decision register](docs/decisions.md), and [acceptance checklist](docs/phase-0/acceptance-checklist.md). The following subsequent user decisions resolve portions of the pending inputs below:
@@ -350,7 +358,7 @@ Phase 0 records live in [the dataset manifest](docs/phase-0/dataset-manifest.md)
 - Map `member`/`casual` to Member/Casual and `classic_bike`/`electric_bike` to Classic/E-bike; other values become Unknown.
 - Display up to two decimal places without rounding stored evidence. Align charts by day number, leaving absent days as gaps rather than zeros.
 - Users supply a month; no omitted-month default is approved. Ask users to select among ambiguous station matches. Each request supplies its month and any required station; retain no analytical chat context.
-- Target a hosted application with retention of at most six months. Approved local ingestion limits: 25 MB/file, 50 MB total file bytes, 200 MB expanded CSV data, 100 CSV members and one ingestion at a time. A valid month may activate while another month is rejected. Hosting/access controls, hosted capacity, retention clock, and artifact coverage remain pending.
+- Target a hosted application with retention of at most six months. Approved local ingestion limits: 25 MB/file, 50 MB total file bytes, 200 MB expanded CSV data, 100 CSV members and one ingestion at a time. A valid month may activate while another month is rejected. Hosting/access controls and hosted capacity remain pending. D26–D29 approve local retention from upload time, dependent-artifact expiry, legacy-date preservation and backup/recovery targets; hosted scheduling/storage and operational verification remain deployment work.
 - The three evaluation curators are Abhee and Monisha (analytics), and Ashutosh (ingestion and agent behavior). Individual analytics case allocation, and authored fixtures remain pending.
 
 Agreed behavioral rules are specified above. These remaining project inputs were not supplied and must not be silently assumed:

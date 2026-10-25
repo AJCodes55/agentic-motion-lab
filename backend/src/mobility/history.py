@@ -39,6 +39,8 @@ def _load(store: DatasetStore, report_id: str):
     baseline = BaselineReport.model_validate_json(baseline_path.read_text(encoding='utf-8'))
     if baseline.report_id != report_id:
         raise ValueError('Archived report identity mismatch')
+    if store.enforce_retention and any(store.is_expired(ref) for ref in baseline.datasets):
+        raise KeyError('Archived report expired with its dataset evidence')
     adhoc_path = _safe_path(root, report_id, 'adhoc.json')
     if adhoc_path.is_file():
         result = AdhocResult.model_validate_json(adhoc_path.read_text(encoding='utf-8'))

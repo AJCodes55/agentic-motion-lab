@@ -80,3 +80,11 @@ test('resubmits an ambiguous station with the explicit original request', async 
   await screen.findByTitle('Agent report for 2026-02');
   expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({period:{year:2026,month:2},command:'Park starts',station_id:'A'});
 });
+test('describes verified tools in plain language with disclosure for exact inputs', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(stream([{type:'result',data:complete}])));
+  render(<AgentPanel period="2026-02" command="Investigate" busy={false}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Run agent analysis'}));
+  expect(await screen.findByText('Station change breakdown')).toBeInTheDocument();
+  expect(screen.getByText('Verified aggregate results. Tool activity shows calculations and their inputs, not private model reasoning.')).toBeInTheDocument();
+  expect(screen.getByText('Exact tool identity and inputs')).toBeInTheDocument();
+});

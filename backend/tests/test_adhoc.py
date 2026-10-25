@@ -130,3 +130,14 @@ def test_archive_failure_removes_partial_ad_hoc_artifacts(tmp_path, monkeypatch)
 def test_whitespace_station_query_cannot_select_only_station_by_default():
     with pytest.raises(ValidationError):
         AdhocRequest(period=Period(year=2026, month=2), metric='station_starts', station_query='   ')
+
+
+def test_adhoc_report_shares_responsive_accessible_document(tmp_path):
+    store = DatasetStore(tmp_path)
+    ref = fixture(store, 2, {'S': 2})
+    result = AdhocService(store).run(AdhocRequest(period=ref.period, metric='total_trips', chart=True))
+    assert 'name="viewport"' in result.html
+    assert '<main id="report-content">' in result.html
+    assert '<th scope="col">' in result.html
+    assert 'tabindex="0" role="region" aria-label="Scrollable chart"' in result.html
+    assert 'Exact values are provided in the table' in result.html

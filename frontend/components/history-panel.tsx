@@ -35,14 +35,16 @@ export default function HistoryPanel() {
     finally { setLoading(false); }
   }
 
-  return <section aria-labelledby="history-heading" className="panel mt-6">
+  return <section id="history" aria-labelledby="history-heading" className="panel mt-6">
     <h2 id="history-heading">Report history</h2>
     <p className="mt-2 text-sm text-slate-700">Open a saved report with its original dataset evidence, even after a corrected upload.</p>
     <button type="button" className="mt-4" disabled={loading} onClick={() => void refresh()}>Refresh report history</button>
+    {reports === null && !loading && <p className="mt-3">Refresh history to browse saved reports.</p>}
     {loading && <p role="status">Loading archived reports…</p>}
     {error && <p role="alert" className="mt-3">{error}</p>}
     {reports?.length === 0 && <p className="mt-3">No archived reports yet.</p>}
     {reports && reports.length > 0 && <ul className="mt-3 space-y-2">{reports.map(entry => <li key={`${entry.report_kind}-${entry.report_id}`}><button type="button" disabled={loading} onClick={() => void open(entry)}>Open {entry.report_kind} report for {monthLabel(entry)} ({entry.report_id})</button> <span>{entry.status}</span></li>)}</ul>}
+    {archive && <p role="status" className="mt-3">Archived report ready with its original saved evidence.</p>}
     {archive && <iframe title={`Archived report ${archive.id}`} sandbox="" referrerPolicy="no-referrer" srcDoc={archive.html} className="mt-4 min-h-[36rem] w-full border-0" />}
   </section>;
 }

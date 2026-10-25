@@ -41,19 +41,21 @@ export default function AdhocPanel({ period, busy }: { period: string; busy: boo
     finally { setRunning(false); }
   }
 
-  return <section aria-labelledby="adhoc-heading" className="panel mt-6">
+  return <section id="queries" aria-labelledby="adhoc-heading" className="panel mt-6">
     <h2 id="adhoc-heading">Supported queries</h2>
     <p className="mt-2 text-sm text-slate-700">Choose a metric for the selected reporting month. Each request includes its own month and station; comparisons use the previous month.</p>
     <label htmlFor="adhoc-metric" className="mt-4 block font-medium">Supported metric</label>
     <select id="adhoc-metric" value={metric} onChange={event => setMetric(event.target.value)}>
       <option value="total_trips">Total trips</option><option value="member_share">Member share</option><option value="fleet_share">Fleet share</option><option value="average_duration">Average duration</option><option value="station_starts">Station starts</option>
     </select>
-    <label htmlFor="adhoc-station" className="mt-4 block font-medium">Station name or ID (optional)</label>
+    <label htmlFor="adhoc-station" className="mt-4 block font-medium">Station name or ID</label>
     <input id="adhoc-station" value={station} disabled={metric !== 'station_starts'} maxLength={500} onChange={event => setStation(event.target.value)} aria-describedby="adhoc-station-help" />
     <p id="adhoc-station-help" className="text-sm">Required for station starts. Ambiguous names require a station selection.</p>
     <label className="mt-3 block"><input type="checkbox" disabled={metric !== 'station_starts'} checked={metric === 'station_starts' && comparison} onChange={event => setComparison(event.target.checked)} /> Compare with previous month</label>
     <label className="mt-3 block"><input type="checkbox" checked={chart} onChange={event => setChart(event.target.checked)} /> Include chart</label>
     <button type="button" className="mt-4" disabled={!valid || busy || running} onClick={() => void submit()}>{running ? 'Running supported query…' : 'Run supported query'}</button>
+    {!valid && <p className="mt-3">Select a reporting month and, for station starts, enter a station name or ID.</p>}
+    {running && <p role="status" className="mt-3">Calculating supported metrics from the requested dataset…</p>}
     {visible && error && <p role="alert" className="mt-3">{error}</p>}
     {visible && result && <><p role="status" className="mt-3">{result.message}</p>
       {result.status === 'needs_station_selection' && <ul aria-label="Matching stations">{result.station_choices?.map(choice => <li key={choice.station_id}><button type="button" disabled={busy || running} onClick={() => void submit(choice.station_id)}>{choice.station_name} ({choice.station_id})</button></li>)}</ul>}

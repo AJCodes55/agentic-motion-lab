@@ -1,6 +1,6 @@
 # Live Project Summary
 
-Last updated: 2026-10-22.
+Last updated: 2026-10-24.
 
 ## Update Rule
 
@@ -16,7 +16,8 @@ Update this file after every phase and every important step: implementation chan
 | 3 — Deterministic analytics and fixed baseline | Complete for local development | Five-section zero-LLM reports, analytics, variance, archived evidence/assets, and report UI verified. See [Phase 3](phase-3.md). |
 | 4 — Agentic workflow and grounding | Locally verified with injected model and live university gateway | Bounded workflow, validated adaptive follow-up, grounded narrative, safe fallback and streamed UI are implemented. See [Phase 4](phase-4.md). |
 | 5 — Supported ad-hoc features | Complete and locally verified | Supported metric/station queries, explicit ambiguity selection, evidence-backed charts, refusals and immutable history access. See [Phase 5](phase-5.md). |
-| 6–7 — Hardening, evaluation | Not started | Follow the [implementation plan](../implementation_plan.md). |
+| 6 — Interface polish and operational hardening | Local operational tooling verified; hosted work remains | D26–D29 retention, dry-run/journaled cleanup and verified backup/new-directory restore implemented. Manual operation, legacy-date exceptions and recovery-target limits documented. Host scheduling/storage/access/capacity remain deferred. See [Phase 6](phase-6.md). |
+| 7 — Evaluation and demonstration | Not started | Follow the [implementation plan](../implementation_plan.md). |
 
 ## Important Steps Completed
 
@@ -59,16 +60,44 @@ Update this file after every phase and every important step: implementation chan
 
 | 2026-10-22 | Committed and pushed Phase 5 | Commit [`7b38123`](https://github.com/AJCodes55/agentic-motion-lab/commit/7b3812350b612f68e783ad03c480f721a8d84d58) is published on `origin/main`: 29 files, supported ad-hoc features, tests, contracts, documentation and the certifi patch. Backend rerun: 201 tests, 94.48% coverage. [GitHub CI](https://github.com/AJCodes55/agentic-motion-lab/actions/runs/39845148623) was in progress when checked. This documentation follow-up records publication. |
 
+| 2026-10-22 | Started Phase 6 | Read the summary, decisions, Phase 5 evidence, implementation plan and SRS. Applying ponytail, caveman and i-have-adhd. Preserve D04 request context, grounding, provenance and safe fallback. Local UI/report polish and operational verification proceed; hosting, authentication/isolation, hosted concurrency, retention clock/coverage and backup/recovery targets were initially awaiting decisions (later explicitly deferred under D20–D21). No commit, push or deployment authorized. |
+
+| 2026-10-22 | Implemented initial Phase 6 report and recovery work | New reports share responsive, printable styles and keyboard-scrollable tables/charts. Focused report/API checks passed (36 tests). Added an offline read-only integrity inspector and local backup/restore runbook; review and broader verification remain in progress. A five-run synthetic local baseline observation had median 1,127.12 ms with zero LLM calls; scope and limits in [Phase 6](phase-6.md). |
+
+| 2026-10-22 | Confirmed Phase 6 scope and future scale | User chose local single-user scope, retained hosting as future work and specified eventual access for 100+ users (D20). User deferred hosted concurrency, retention, backup and recovery policies (D21). Deployment gates and remaining Phase 6 work are recorded in the implementation plan. No 100+ user capacity claim is made. |
+
+| 2026-10-22 | Verified Phase 6 local scope | Backend 214 tests (94.14% coverage), frontend 68 tests (84.95% branches), 8/8 browser checks, production build, lint/typecheck, contract snapshot and diff checks pass. Keyboard/mobile flows and restored archived baseline identity verified. Reviews completed; no blocking findings remain. Final synthetic baseline median: 1,134.58 ms, zero model calls. [Results and limits](phase-6.md). No commit, push or deployment. |
+
+| 2026-10-24 | Started Vercel Services configuration preparation | User requested multi-service Vercel configuration, then chose configuration-only scope with durable storage deferred (D22). Existing Next.js API proxies require frontend-owned public routing and a private backend binding; proposed names/exposure/binding await confirmation. SQLite persistence, upload transport and access controls remain deployment gates. No commit, push or deployment. |
+
+| 2026-10-24 | Verified Vercel configuration locally | 75 frontend tests, lint/typecheck and production build passed. Vercel CLI 65.2.0 local Services rehearsal confirmed bound health/period calls and no public backend `/health` route. Reviews found no blocking changes. Service names/exposure/binding still await confirmation; cloud build, durable storage and upload/access design remain unverified. [Evidence](phase-6.md#vercel-preparation-verification--2026-10-24). Local servers stopped; no commit, push or deployment. |
+
+| 2026-10-24 | Approved deployment routing and clarified audience | User approved the proposed service routing/names/binding (D23) and identified demonstrations/recruiters as the hosted audience (D24). Hosting/storage choice, access policy, budget and deployment remain outstanding. |
+
+| 2026-10-24 | Deferred deployment to the final stage | User requested continued local work while Render credits await activation (D25). Complete local evaluation/demo first; return to hosting after Phase 7 and a user request. Preserved Vercel preparation; added a final deployment checklist to the implementation plan. No cloud resources, deployment, commit or push. |
+
+| 2026-10-24 | Approved and started local retention/backup completion | User approved six calendar months from upload, dependent artifact expiry/deletion, backups before risky/demo changes, isolated restore and RPO24h/RTO1h targets (D26–D28). Legacy undated uploads are preserved pending original dates (D29). New lifecycle recording, expiration read gates, offline locking, cleanup and backup tools are being integrated and reviewed. No real-data purge, commit, push or deployment. |
+
+| 2026-10-24 | Verified local retention, cleanup and backup/recovery tooling | Backend 254 tests pass (93.14% coverage); API expiry/legacy handling and 40 new regressions verified. Local synthetic 64,585-row/4.14 MB backup: 2.180s; restore: 2.169s. Browser rerun 8/8, production build, lint/typecheck, contract/diff checks pass. Initial parallel browser run hit the approved single-ingestion lock (7/8); screenshot confirmed the busy response, so the shared-store test harness now runs one worker. Python, security and final general code reviews found no blocking issues. No real project data cleanup/backup, provider call, commit, push or deployment. |
+
+| 2026-10-24 | Selected local backup destination | User chose `~/Main drive/agentic-motion-lab backup` (D30). Path is outside the repository/default data root and has no symlink components; corrected directory already exists. Its parent shares the working-data filesystem, so independent disk-loss protection remains unverified. Recorded destination only; no backup/deletion/deployment. |
+
+| 2026-10-24 | Created and verified first real-data backup | Snapshot `snapshot-958958f96a73427bb48d261092b7d85f` and separate restore check are in the selected backup folder. 128 files/18,247,807 bytes, both months (39,198/25,387 trips) and all 13 saved reports verified. Backup 2.456s; restore 2.425s. Source unchanged during backup; cleanup dry run had zero deletion candidates and four blocked legacy records. Backend restarted from repository source with explicit data root; health/periods/history passed. [Evidence and paths](phase-6.md#first-working-data-backup-and-restore-rehearsal--2026-10-24). No deletion, provider call, commit, push or deployment. |
+
+| 2026-10-24 | Started the project interface on port 3001 | The user opened backend port 8000 expecting the UI. Started the frontend on free loopback port 3001 with backend URL 8000; preserved the portfolio on 3000. Verified interface HTTP 200, frontend health proxy and both working periods. Processes must remain running. No code changes or deployment. |
+
+| 2026-10-24 | Prepared authorized Phase 6 publication | User explicitly requested commit and push to the existing GitHub repository. Fetched `origin/main`; local/remote heads match before publication. Full candidate-file security review found no credentials, raw datasets, SQLite databases, backups or private assistant files. Python pinned dependency audit (31 packages), production npm audit and full npm audit all report zero known vulnerabilities; no dependency versions were changed. Existing verified results remain 254 backend tests (93.14% coverage), 75 frontend tests and 8 browser tests. Deployment remains deferred; no cloud resources or model calls are part of publication. |
+
 ## Remaining Work and Limits
 
-Local preview started on 2026-10-18: frontend `http://127.0.0.1:3000`, backend `http://127.0.0.1:8000`. Process availability depends on them remaining active, and a running backend must be restarted to load newer code and environment. Separate live gateway and browser checks succeeded. No embedding model is currently selected or implemented.
+Current local preview (2026-10-24): frontend `http://127.0.0.1:3001`, backend API `http://127.0.0.1:8000`. Port 3000 belongs to a separate portfolio project. The application UI is served by Next.js on 3001; backend `/` is not the interface. Process availability depends on them remaining active, and a running backend must be restarted to load newer code and environment. Separate live gateway and browser checks succeeded. No embedding model is currently selected or implemented.
 
 - Phases 2–4 are implemented and published in commit `53c569a`. The public OpenAI endpoint rejected the university key; the supplied university Portkey gateway URL and model route completed live backend and browser checks.
 - Tied-contribution wording and structured leaders approved under D17; allocate individual analytics cases and obtain challenging contributions from each curator during evaluation preparation.
 - Resolve hosting/access controls, resource limits, recovery, and retention details before the affected implementation or exposure.
-- Track the development dependency advisory described in [Phase 1](phase-1.md). Production npm audit reported zero vulnerabilities at the recorded check; full development audit was not clean.
+- The earlier development dependency advisory is preserved as historical evidence in [Phase 1](phase-1.md). The refreshed 2026-10-24 production and full npm audits both report zero known vulnerabilities; the Python pinned dependency audit is also clean.
 - Phase 2–3 verification is local; remote CI will run after a requested commit/push. No hosted deployment has occurred. Isolated test servers were stopped; a separate local user preview was subsequently started as noted above. Historic Phase 1 CI links remain above.
 
 ## Next Step
 
-Next: Phase 6 interface polish and operational hardening. Resolve the affected hosting, access, retention and recovery decisions before implementing those operations. Phase 5 is complete locally; no new live gateway request or hosted deployment was performed.
+The approved local operational tools are implemented and verified; Phase 6 overall still contains deferred hosted requirements. The selected backup location now contains a verified actual-data snapshot and separate restore rehearsal. For future maintenance, stop all writers and follow the [Phase 6 runbook](phase-6.md#local-operational-implementation--d26d29-2026-10-24). Both working legacy versions remain undated and untouched until original dates are supplied. The actual local recovery timing/freshness check passed; ongoing recovery guarantees remain unproven. Physical cleanup, snapshot pruning and event/daily backups are manual; ongoing 24-hour RPO is not guaranteed by tool tests. Local Phase 7 evaluation/demo can proceed when authorized. Hosted deployment remains the final stage under D25 after credits and provider-specific storage, access, capacity, scheduling and recovery verification. The user subsequently authorized commit and push of this work; cloud purchase and deployment remain unauthorized/deferred.

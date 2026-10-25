@@ -1,5 +1,6 @@
 """Bounded local ingestion API with safe errors and structured request logs."""
 import asyncio
+from contextlib import asynccontextmanager
 import json
 import logging
 from queue import Queue
@@ -13,6 +14,7 @@ from fastapi import FastAPI, Request
 from starlette.datastructures import UploadFile
 from starlette.concurrency import run_in_threadpool
 
+from .maintenance import application_lock
 from .config import Settings
 from .service import IngestionService
 from .baseline import BaselineReport, generate_standard_dashboard
@@ -62,7 +64,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     configure_logging()
     settings = settings or Settings()
     service = IngestionService(settings)
-    app = FastAPI(title='Monthly Mobility API', version='0.1.0')
+    @asynccontextmanager
+    async def lifespan(_app):
+        settings.data_root.mkdir(parents=True, exist_ok=True)
+        with application_lock(settings.data_root):
+            yield
+
+    app = FastAPI(title='Monthly Mobility API', version='0.1.0', lifespan=lifespan)
 
     @app.middleware('http')
     async def request_context(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:

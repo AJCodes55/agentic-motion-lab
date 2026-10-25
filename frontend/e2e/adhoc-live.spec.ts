@@ -8,7 +8,7 @@ test('real query selects station, renders chart, and reads immutable history', a
   await expect(page.getByText('2026-03: accepted')).toBeVisible();
   await page.getByLabel('Reporting month').fill('2026-03');
   await page.getByLabel('Supported metric').selectOption('station_starts');
-  await page.getByLabel('Station name or ID (optional)').fill('Park');
+  await page.getByLabel('Station name or ID').fill('Park');
   await page.getByLabel('Include chart').check();
   await page.getByRole('button', { name: 'Run supported query' }).click();
   const answerResponse = page.waitForResponse(response => response.url().endsWith('/api/adhoc') && response.request().method() === 'POST' && response.request().postDataJSON().station_id === 'P1');

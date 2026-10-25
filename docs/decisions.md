@@ -1,6 +1,6 @@
 # Project Decisions
 
-Last updated: 2026-10-22.
+Last updated: 2026-10-24.
 
 This is the canonical project-wide decision record. Update it after every crucial decision. Record what changed, why, approval/source, affected phase, and unresolved details. Preserve superseded decisions explicitly; do not silently replace them. The [SRS](../software_requirement_specification_srs.md) remains the requirements authority. Update affected requirements and the [live summary](summary.md) when a decision changes behavior or scope.
 
@@ -29,6 +29,13 @@ All entries below were confirmed by the user on 2026-10-18. D01–D08 preserve t
 | D17 | Display tied contribution leaders as “Jointly led by [categories] (each [value]%).” Label Unknown as “Unknown (unclassified)”; preserve all tied leaders as structured category/value entries. | User explicitly approved wording and structure when starting Phase 3. | Phases 3–4. Existing single-winner templates and null suppression remain unchanged. |
 | D18 | Use the university-provided OpenAI API key directly for Phase 4, replacing the SRS Portkey gateway requirement. | User explicitly requested “switch Phase 4 to direct OpenAI” on 2026-10-19. | Superseded by D19 when the user supplied the university gateway URL and model slug. The backend-only key and grounding requirements remain. |
 | D19 | Use the university-provided OpenAI-compatible Portkey gateway URL and `@30875-fall26-openai/gpt-5-nano` model route with the existing `OPENAI_API_KEY`. No separate Portkey account or provider slug is required by the assignment example. | User supplied the assignment’s exact `base_url` and `MODEL` configuration on 2026-10-19 after the public OpenAI endpoint returned 401. | Supersedes D18’s public endpoint choice. The backend restricts the configured URL to the public OpenAI or Portkey API origins; a live university-gateway run completed with grounded evidence. |
+
+## Phase 6 Scope Decisions — 2026-10-22
+
+| ID | Decision | Reason or source | Scope and remaining details |
+| --- | --- | --- | --- |
+| D20 | Keep Phase 6 local and single-user for now. Hosting remains future work. The eventual system must support 100+ users. | User explicitly chose local single-user scope during Phase 6 and stated the future scale goal. | D07's hosted destination remains the long-term target. 100+ users is a goal, not demonstrated capacity or a defined simultaneous workload. Provider, storage topology, identity/isolation and load acceptance criteria remain unselected. |
+| D21 | Defer hosted concurrency, retention details, backup and recovery policies; document deployment gates and remaining Phase 6 work in the implementation plan. | User explicitly deferred these policies during Phase 6. | D08's maximum six months remains approved. No retention clock, artifact/backup lifecycle, destructive cleanup, backup destination/schedule or RPO/RTO is inferred. These deferred tasks do not block independent local polish and verification. |
 
 ## Implementation Decisions
 
@@ -87,3 +94,48 @@ GitHub publication exclusions are approved under D14. Publication progress and v
 | T19 | Provide strict structured ad-hoc requests and typed extraction from the existing command input. The four aggregate metric families are single-month only; station starts supports the immediately preceding month. Keep D04's explicit reporting month and station selection, with no retained analytical conversation context. | Request validation, refusal categories, conflicting reporting periods, long station IDs, and complete ambiguity resubmission are regression-tested. Natural-language classification remains model-dependent; structured queries avoid that dependency. |
 | T20 | Reuse a single baseline snapshot for station lookup, calculations, answer tables, and fixed SVG charts. A chart consumes successful evidence from the same run; archive the exact result, evidence, and SVG with a manifest published last. | Tests verify exact chart/answer values, Unknown shares, pinned replacements, escaped labels, invalid evidence rejection, and failed-write cleanup. No arbitrary chart code or paths are exposed. |
 | T21 | Browse one final saved report per run, preferring its ad-hoc artifact, then agent artifact, then baseline. Read saved HTML directly and validate its identity against the baseline's pinned dataset references. | Original baseline HTML/evidence remain saved. History tests cover single-month subsets with both months loaded, replacement immutability, metadata/HTML mismatch, path traversal, and symlinks. Hosting, access controls and retention remain deferred. |
+
+## Phase 6 Implementation Decisions
+
+| ID | Choice and reason | Verification and limits |
+| --- | --- | --- |
+| T22 | Apply interface and newly generated report polish within existing contracts, using native semantic controls and existing styling. Preserve explicit request context, validated-only activity, grounding, evidence identity and immutable saved reports. | Verification is tracked in [Phase 6](phase-6.md). Existing archives are not rewritten. |
+| T23 | Proceed with approved local limits and isolated recovery verification while operational product policies remain unresolved. Do not infer a retention clock, delete inactive versions, expose a hosted service or invent authentication/isolation rules. | D07/D08 remain open. Hosting/provider, intended users/isolation, hosted workload/concurrency, retention clock and artifact/backup coverage, backup destination/schedule, acceptable data loss and restore-time targets require decisions before their affected behavior. |
+
+## Vercel Preparation Scope — 2026-10-24
+
+| ID | Decision | Reason or source | Scope and remaining details |
+| --- | --- | --- | --- |
+| D22 | Prepare Vercel Services configuration now; decide durable backend storage next. | User explicitly selected this scope after the SQLite/filesystem constraint was explained. | Extends D20 with authorized hosting preparation only. No deployment, data migration or ephemeral-storage substitution is authorized by this choice. Existing retention/access/capacity gates remain. |
+
+Service names `backend`/`frontend`, public catch-all to `frontend` (including its existing `/api/*` proxies), and caller-side `frontend` → `backend` binding `BACKEND_URL` were approved by the user on 2026-10-24 (D23). See the Vercel section of [Phase 6](phase-6.md) for persistence, upload transport and access blockers.
+
+| ID | Decision | Reason or source | Scope and remaining details |
+| --- | --- | --- | --- |
+| D23 | Approve the proposed service names, frontend-owned public routing and frontend-to-private-backend binding. | User answered “1) approve” to the deployment checklist on 2026-10-24. | Configuration approval only; durable hosting/storage and actual deployment remain outstanding. |
+| D24 | Intended hosted use is demonstrations and sharing with recruiters. | User explicitly described the audience on 2026-10-24. | Does not establish anonymous write/model access, authentication policy, simultaneous workload or paid-hosting budget. Future 100+ user goal remains distinct from verified demo capacity. |
+
+## Deployment Deferred to Final Stage — 2026-10-24
+
+| ID | Decision | Reason or source | Scope and remaining details |
+| --- | --- | --- | --- |
+| D25 | Continue local development and evaluation; move hosted deployment to the final stage after Phase 7. Revisit hosting when Render credits activate and the user asks to resume deployment. | User explicitly requested postponement because their Render credits are not yet activated. | Supersedes deployment as the immediate next task under D22. Preserve prepared Vercel configuration and D23 routing approval as prior work; neither establishes a Render configuration or a completed deployment. Render was recommended for a persistent-disk demo but its plan, cost and final topology are not yet approved. Credit activation alone does not authorize spending or deployment. |
+
+On return, read the final deployment stage in [the implementation plan](../implementation_plan.md). Confirm credits/budget and hosting topology; resolve persistence, upload transport, access protection, concurrency and retention/backup/recovery gates; then configure, test and deploy only within the user's renewed authorization. The demo/recruiter audience (D24), future 100+ user goal and existing grounding/provenance safeguards remain unchanged. No cloud resources, data migration, commit or push is authorized by this deferral.
+
+## Local Operational Policies — 2026-10-24
+
+| ID | Decision | Reason or source | Scope and remaining details |
+| --- | --- | --- | --- |
+| D26 | Retain each uploaded dataset version for six calendar months from its upload timestamp, not its reporting month; expire dependent reports, KPIs, charts and evidence, and delete expired data/reports through reference-safe cleanup. | User explicitly confirmed January 2026 data uploaded in October 2026 expires in April 2027 and approved deleting old data/reports. | UTC timestamps; preserve the day/time where possible and clamp a nonexistent month-end day. Whole report archives expire with their earliest-expiring required baseline dataset, including agent/ad-hoc siblings. Rejections/quarantine receive their own upload clocks. This resolves the local clock/coverage portion of D08/D21; hosted scheduling and external backup lifecycle still require deployment setup. |
+| D27 | Create backups before risky changes and after important demo preparation; restore into a new directory and never overwrite the only surviving copy. | User approved this procedure explicitly. | Local tools take an explicit external destination path; no location, unattended schedule, cloud account or storage purchase is assumed. Preserve original retention dates and reject expired managed snapshots rather than resurrect expired data. Managed snapshot expiry is its earliest known artifact expiry. |
+| D28 | Target at most 24 hours of lost changes (RPO) and recovery within one hour (RTO). | User explicitly accepted the targets and that verification requires testing. | Local measured fixtures establish mechanics and observed timing only. Event-triggered backups alone do not guarantee 24-hour freshness; daily backups during changes and freshness checks are necessary. Host/hardware loss and deployed scale remain unverified. |
+| D29 | Preserve legacy uploads without recorded upload timestamps until the user supplies original upload dates. | User explicitly chose this safe handling in the follow-up question. | Never infer original upload dates from reporting months or filesystem mtimes; do not start a new six-month clock on restore or merely opening old data. Unknown/incomplete artifacts are inventoried and retained, not treated as proven orphans. |
+
+D25 still defers hosted deployment. D26–D29 reopen and authorize completion of local Phase 6 operational work; deferring deployment does not mean these requirements were implemented. Existing local datasets are not purged as part of development verification; destructive operations are tested only on isolated fixtures.
+
+## Local Backup Destination — 2026-10-24
+
+| ID | Decision | Reason or source | Scope and remaining details |
+| --- | --- | --- | --- |
+| D30 | Use `~/Main drive/agentic-motion-lab backup` as the local backup parent directory. | User supplied this folder under their Main drive. | Path is outside the repository and default working data root with no symlink components; the corrected directory already exists. Its existing parent is on the same filesystem as the working data. This protects against some accidental changes, not failure/loss of that filesystem or machine. No folder or backup was created during path validation; creation outside the workspace requires the applicable filesystem permission. |

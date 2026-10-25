@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { afterEach, expect, test, vi } from 'vitest';
 import AdhocPanel from '../components/adhoc-panel';
 afterEach(() => vi.unstubAllGlobals());
@@ -15,7 +15,7 @@ test('resubmits the complete request on station selection and isolates HTML', as
  vi.stubGlobal('fetch', fetcher);
  render(<AdhocPanel period="2026-02" busy={false}/>);
  fireEvent.change(screen.getByLabelText('Supported metric'), {target:{value:'station_starts'}});
- fireEvent.change(screen.getByLabelText('Station name or ID (optional)'), {target:{value:'Park'}});
+ fireEvent.change(screen.getByLabelText('Station name or ID'), {target:{value:'Park'}});
  fireEvent.click(screen.getByLabelText('Compare with previous month'));
  fireEvent.click(screen.getByLabelText('Include chart'));
  fireEvent.click(screen.getByRole('button',{name:'Run supported query'}));
@@ -27,7 +27,7 @@ test.each(['refused','invalid','network'])('handles %s without fabricated report
  vi.stubGlobal('fetch',vi.fn().mockImplementation(async()=>{if(mode==='network')throw Error('Offline');return reply(mode==='refused'?{status:'refused',message:'Comparison data missing.'}:{status:'success',html:4});}));
  render(<AdhocPanel period="2026-02" busy={false}/>);
  fireEvent.click(screen.getByRole('button',{name:'Run supported query'}));
- expect(await screen.findByRole(mode==='refused'?'status':'alert')).toHaveTextContent(mode==='refused'?'Comparison data missing.':mode==='invalid'?'invalid response':'Offline');
+ await waitFor(()=>expect(screen.getByRole(mode==='refused'?'status':'alert')).toHaveTextContent(mode==='refused'?'Comparison data missing.':mode==='invalid'?'invalid response':'Offline'));
 });
 test('does not show prior request choices after context changes',async()=>{
  vi.stubGlobal('fetch',vi.fn().mockResolvedValue(reply({status:'needs_station_selection',message:'Choose a station.',station_choices:[{station_id:'A',station_name:'Park'}]})));
@@ -42,9 +42,9 @@ test('omits station context when switching to an aggregate metric',async()=>{
  const fetcher=vi.fn().mockResolvedValue(reply({status:'success',message:'Ready',html:'<h1>Answer</h1>'}));vi.stubGlobal('fetch',fetcher);
  render(<AdhocPanel period="2026-02" busy={false}/>);
  fireEvent.change(screen.getByLabelText('Supported metric'),{target:{value:'station_starts'}});
- fireEvent.change(screen.getByLabelText('Station name or ID (optional)'),{target:{value:'Park'}});
+ fireEvent.change(screen.getByLabelText('Station name or ID'),{target:{value:'Park'}});
  fireEvent.change(screen.getByLabelText('Supported metric'),{target:{value:'total_trips'}});
- expect(screen.getByLabelText('Station name or ID (optional)')).toBeDisabled();
+ expect(screen.getByLabelText('Station name or ID')).toBeDisabled();
  fireEvent.click(screen.getByRole('button',{name:'Run supported query'}));
  await screen.findByTitle('Supported query report for 2026-02');
  expect(JSON.parse(fetcher.mock.calls[0][1].body)).not.toHaveProperty('station_query');
