@@ -51,7 +51,30 @@ def test_adjacent_station_comparison_missing_prior_and_nonadjacent(tmp_path):
     assert result.datasets == (ref, prior)
     assert result.evidence[-1].tool_name == 'analyze_station_variance'
     assert any(v.exact_tool_value == -20 for v in result.evidence[-1].values)
+    assert 'Trip loss by rider type' in result.html and '−20.00%' in result.html
+    assert 'Entity / category' not in result.html
     assert service.run(request.model_copy(update={'comparison_period': Period(year=2025, month=12)})).status == 'refused'
+
+
+def test_zero_current_station_dashboard_withholds_percent_and_hides_station_id_as_segment(tmp_path):
+    store = DatasetStore(tmp_path)
+    fixture(store, 7, {'HB106': 1500})
+    current = fixture(store, 8, {'OTHER': 5})
+    result = AdhocService(store).run(AdhocRequest(period=current.period, metric='station_starts', station_id='HB106', comparison=True))
+    assert result.status == 'success', result.message
+    html = result.html
+    assert 'Station:</strong> HB106' in html
+    assert 'July 2026 vs. August 2026' in html
+    assert '−1,500 trips' in html
+    assert '−100.00%' not in html
+    assert 'Percentage withheld. This month has no trips at this station.' in html
+    assert 'August 2026 recorded volume is zero.' in html
+    assert 'class="seg-name">HB106' not in html
+    assert 'class="seg-name">Member' in html
+    assert 'Unknown' not in html
+    assert '100.00%' in html
+    assert 'Share withheld. The previous sample is below 100 trips.' in html
+    assert 'before attributing the decline to demand' in html
 
 
 def test_strict_catalog_and_explicit_period(tmp_path):

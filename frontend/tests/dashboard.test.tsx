@@ -60,3 +60,39 @@ test('aborts an in-flight check when unmounted',async()=>{
  unmount();
  expect(signal?.aborted).toBe(true);
 });
+test('places retrieval beside analysis and agent results before comparison', async () => {
+ render(<Dashboard />);
+ const request = screen.getByRole('region', {name:'2. Describe the report'});
+ const run = screen.getByRole('button', {name:'Run agent analysis'});
+ const retrieve = screen.getByRole('button', {name:'Fetch public Citi Bike data'});
+ expect(request).toContainElement(retrieve);
+ expect(run.parentElement).toBe(retrieve.parentElement);
+ expect(run.compareDocumentPosition(retrieve) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+ const agent = screen.getByRole('region', {name:'Agent analysis'});
+ expect(agent.compareDocumentPosition(document.getElementById('comparison')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+ expect(retrieve).toBeDisabled();
+ fireEvent.change(screen.getByLabelText('Reporting month'),{target:{value:'2026-02'}});
+ fireEvent.click(retrieve);
+ await waitFor(()=>expect(vi.mocked(fetch).mock.calls.some(call=>call[0]==='/api/ingestions/fetch')).toBe(true));
+ await screen.findByText('Backend connected');
+});
+
+
+test('places a collapsed trace after report history', async () => {
+ const result = {run_id:'trace-test',status:'refused',report_html:'',stages:[],trace:[]};
+ vi.mocked(fetch).mockImplementation(async url => url === '/api/agent-runs/stream' ? {ok:true,body:new ReadableStream({start(controller) {
+  controller.enqueue(new TextEncoder().encode(JSON.stringify({type:'result',data:result})+'\n')); controller.close();
+ }})} as Response : healthy());
+ render(<Dashboard/>);
+ fireEvent.change(screen.getByLabelText('Reporting month'), {target:{value:'2026-07'}});
+ fireEvent.change(screen.getByLabelText('Analysis request'), {target:{value:'Test query'}});
+ fireEvent.click(screen.getByRole('button', {name:'Run agent analysis'}));
+ const trace = await screen.findByRole('region', {name:'Trace'});
+ expect(document.querySelector('main')?.lastElementChild).toBe(trace);
+ const disclosure = trace.querySelector('details')!;
+ expect(disclosure).not.toHaveAttribute('open');
+ fireEvent.click(screen.getByText('Show more'));
+ expect(disclosure).toHaveAttribute('open');
+ fireEvent.click(screen.getByText('Show less'));
+ expect(disclosure).not.toHaveAttribute('open');
+});

@@ -40,6 +40,7 @@ class LLMUsage:
 class LLMResult(Generic[T]):
     value: T
     usage: LLMUsage
+    finish_reason: str = 'stop'
 
 
 class LLMProvider(Protocol):
@@ -80,6 +81,19 @@ class OpenAIProvider:
         self._transport = transport
 
     def request(self, schema: type[T], system: str, payload: dict[str, object]) -> LLMResult[T]:
+        result = self._completion(system, payload, schema)
+        try:
+            value = schema.model_validate_json(result.value)
+        except ValidationError:
+            raise ProviderSchemaError() from None
+        return LLMResult(value=value, usage=result.usage)
+
+    def request_text(self, system: str, payload: dict[str, object]) -> LLMResult[str]:
+        """One unstructured request for the evaluation baseline; no corrective retry."""
+        return self._completion(system, payload)
+
+    def _completion(self, system: str, payload: dict[str, object],
+                    schema: type[BaseModel] | None = None) -> LLMResult[str]:
         key = self._settings.openai_api_key
         if key is None or not key.get_secret_value().strip():
             raise ProviderUnavailable()
@@ -89,14 +103,15 @@ class OpenAIProvider:
                 {'role': 'system', 'content': system},
                 {'role': 'user', 'content': json.dumps(payload, separators=(',', ':'), sort_keys=True)},
             ],
-            'response_format': {'type': 'json_schema', 'json_schema': {
-                'name': schema.__name__[:64], 'strict': True,
-                'schema': _strict_schema(schema.model_json_schema()),
-            }},
             'max_completion_tokens': 2048,
             'reasoning_effort': 'minimal',
             'stream': False,
         }
+        if schema is not None:
+            body['response_format'] = {'type': 'json_schema', 'json_schema': {
+                'name': schema.__name__[:64], 'strict': True,
+                'schema': _strict_schema(schema.model_json_schema()),
+            }}
         try:
             with httpx.Client(transport=self._transport, timeout=self._settings.llm_timeout_seconds) as client:
                 response = client.post(f'{self._settings.openai_base_url}/chat/completions', json=body, headers={
@@ -105,16 +120,13 @@ class OpenAIProvider:
             response.raise_for_status()
             data = response.json()
             choice = data['choices'][0]
-            if choice['finish_reason'] != 'stop' or choice['message'].get('refusal'):
+            if schema is not None and (choice['finish_reason'] != 'stop' or choice['message'].get('refusal')):
                 raise ProviderUnavailable()
             content = choice['message']['content']
             if not isinstance(content, str):
                 raise ProviderUnavailable()
-            try:
-                value = schema.model_validate_json(content)
-            except ValidationError:
-                raise ProviderSchemaError() from None
-            return LLMResult(value=value, usage=_usage(data.get('usage')))
+            return LLMResult(value=content, usage=_usage(data.get('usage')),
+                             finish_reason=str(choice['finish_reason']))
         except ProviderSchemaError:
             raise
         except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):

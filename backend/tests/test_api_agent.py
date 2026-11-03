@@ -39,7 +39,9 @@ def test_stream_exposes_stages_and_final_safe_fallback(tmp_path):
         'period': {'year': 2026, 'month': 1}, 'command': 'standard report'}) as response:
         assert response.status_code == 200
         events = [json.loads(line) for line in response.iter_lines() if line]
-    assert events[0] == {'type': 'stage', 'name': 'Data Ingest', 'status': 'complete'}
+    assert events[0]['type'] == 'trace'
+    assert events[0]['data']['operation'] == 'request'
+    assert next(event for event in events if event['type'] == 'stage') == {'type': 'stage', 'name': 'Data Ingest', 'status': 'complete'}
     assert events[-1]['type'] == 'result'
     assert events[-1]['data']['status'] == 'partial'
     assert 'KPI Scorecard' in events[-1]['data']['report_html']

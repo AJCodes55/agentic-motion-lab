@@ -5,7 +5,9 @@ import UploadPanel from './upload-panel';
 import ReportPanel from './report-panel';
 import AgentPanel from './agent-panel';
 import AdhocPanel from './adhoc-panel';
+import ComparisonPanel from './comparison-panel';
 import HistoryPanel from './history-panel';
+import TracePanel, { type QueryTrace } from './trace-panel';
 import { useEffect, useRef, useState } from 'react';
 
 export default function Dashboard() {
@@ -15,6 +17,10 @@ export default function Dashboard() {
   const [ingesting, setIngesting] = useState(false);
   const [period, setPeriod] = useState('');
   const [command, setCommand] = useState('');
+  const [agentRunning, setAgentRunning] = useState(false);
+  const [runToken, setRunToken] = useState(0);
+  const [queryTrace, setQueryTrace] = useState<QueryTrace | null>(null);
+  const canRunAgent = /^\d{4}-(0[1-9]|1[0-2])$/.test(period) && command.trim().length > 0 && !ingesting && !agentRunning;
 
   async function checkConnection() {
     activeCheck.current?.abort();
@@ -45,13 +51,13 @@ export default function Dashboard() {
         <h1 className="mt-2 text-3xl font-bold">Mobility reporting workspace</h1>
         <p className="mt-3 text-slate-700">Upload monthly data or fetch it from public Citi Bike S3.</p>
       </header>
-      <nav aria-label="Workspace sections" className="workspace-nav mb-6"><a href="#data">Data</a><a href="#request-heading">Reporting month</a><a href="#agent">Agent analysis</a><a href="#queries">Supported queries</a><a href="#baseline">Baseline report</a><a href="#history">Report history</a></nav>
+      <nav aria-label="Workspace sections" className="workspace-nav mb-6"><a href="#data">Data</a><a href="#request-heading">Reporting month</a><a href="#agent">Agent analysis</a><a href="#comparison">Baseline vs Agent</a><a href="#queries">Supported queries</a><a href="#baseline">Baseline report</a><a href="#history">Report history</a></nav>
       <section aria-labelledby="service-heading" className="panel mb-6 flex flex-wrap items-center justify-between gap-4">
         <div><h2 id="service-heading">Service connection</h2><p role="status" aria-live="polite">{connection}</p></div>
         <button type="button" onClick={() => { setChecking(true); setConnection('Checking backend…'); void checkConnection(); }} disabled={checking}>Check connection</button>
       </section>
       <div className="grid gap-6 md:grid-cols-2">
-        <UploadPanel period={period} onBusy={setIngesting} />
+        <UploadPanel period={period} onBusy={setIngesting} fetchFormId="public-data-fetch" />
         <section aria-labelledby="request-heading" className="panel">
           <h2 id="request-heading" tabIndex={-1}>2. Describe the report</h2>
           <label htmlFor="period" className="mt-4 block font-medium">Reporting month</label>
@@ -60,12 +66,18 @@ export default function Dashboard() {
           <label htmlFor="command" className="mt-4 block font-medium">Analysis request</label>
           <textarea aria-describedby="command-help" id="command" value={command} onChange={event => setCommand(event.target.value)} rows={3} placeholder="Describe the metrics and stations to explore" maxLength={2000} />
           <p id="command-help" className="mt-2 text-sm text-slate-700">Ask the agent to investigate verified monthly or station trends. Each request stands alone; previous analytical requests are not retained.</p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button type="button" disabled={!canRunAgent} onClick={() => setRunToken(value => value + 1)}>{agentRunning ? 'Running agent analysis…' : 'Run agent analysis'}</button>
+          <button type="submit" form="public-data-fetch" disabled={ingesting || !period}>Fetch public Citi Bike data</button>
+          </div>
         </section>
       </div>
-      <AgentPanel period={period} command={command} busy={ingesting} />
+      <AgentPanel period={period} command={command} busy={ingesting} showButton={false} runToken={runToken} onRunning={setAgentRunning} onTrace={setQueryTrace} />
+      <ComparisonPanel period={period} busy={ingesting} />
       <AdhocPanel period={period} busy={ingesting} />
       <ReportPanel period={period} busy={ingesting} />
       <HistoryPanel />
+      {queryTrace && <TracePanel trace={queryTrace} />}
     </main>
   );
 }

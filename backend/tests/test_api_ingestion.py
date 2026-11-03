@@ -21,6 +21,15 @@ def test_upload_and_restart(client, tmp_path):
     assert result['quality']['valid_rows'] == 1
     assert TestClient(create_app(Settings(data_root=tmp_path))).get('/periods').json()['data']['periods'] == [result['dataset']]
 
+def test_remove_hides_month_and_keeps_files(client, tmp_path):
+    dataset = upload(client, source([row()])).json()['data']['results'][0]['dataset']
+    removed = client.post('/periods/remove', json={'period': {'year': 2026, 'month': 1}})
+    assert removed.status_code == 200
+    assert removed.json()['data']['periods'] == []
+    assert (tmp_path / 'versions' / dataset['version_id']).is_dir()
+    assert client.post('/periods/remove', json={'period': {'year': 2026, 'month': 1}}).status_code == 404
+
+
 def test_partial_acceptance(client):
     response = upload(client, source([row()]), source([row(started_at='bad')], 'JC-202602-citibike-tripdata.csv'))
     assert response.status_code == 200

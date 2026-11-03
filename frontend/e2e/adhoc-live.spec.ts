@@ -13,7 +13,7 @@ test('real query selects station, renders chart, and reads immutable history', a
   await page.getByRole('button', { name: 'Run supported query' }).click();
   const answerResponse = page.waitForResponse(response => response.url().endsWith('/api/adhoc') && response.request().method() === 'POST' && response.request().postDataJSON().station_id === 'P1');
   await page.getByRole('button', { name: 'Park (P1)' }).click();
-  const answer = await (await answerResponse).json();
+  await answerResponse;
   const report = page.frameLocator('iframe[title="Supported query report for 2026-03"]');
   await expect(report.getByRole('heading', { name: 'Station starts: Park (P1)' })).toBeVisible();
   await expect(report.locator('svg')).toBeVisible();
@@ -21,6 +21,6 @@ test('real query selects station, renders chart, and reads immutable history', a
   await page.getByRole('button', { name: 'Refresh report history' }).scrollIntoViewIfNeeded();
   await page.getByRole('button', { name: 'Refresh report history' }).hover();
   await page.getByRole('button', { name: 'Refresh report history' }).click();
-  await page.getByRole('button', { name: `Open adhoc report for 2026-03 (${answer.data.report_id})`, exact: true }).click();
+  await page.getByRole('button', { name: `March 2026 — Ad hoc report`, exact: true }).click();
   await expect(page.frameLocator('iframe[title^="Archived report"]').getByRole('heading', { name: 'Station starts: Park (P1)' })).toBeVisible();
 });

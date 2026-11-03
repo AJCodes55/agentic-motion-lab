@@ -24,6 +24,6 @@ test('selects an ambiguous station and opens archived verified answer', async ({
   await page.getByRole('button', { name: 'Refresh report history' }).scrollIntoViewIfNeeded();
   await page.getByRole('button', { name: 'Refresh report history' }).hover();
   await page.getByRole('button', { name: 'Refresh report history' }).click();
-  await page.getByRole('button', { name: 'Open adhoc report for 2026-02 (saved)' }).click();
+  await page.getByRole('button', { name: 'February 2026 — Ad hoc report' }).click();
   await expect(page.frameLocator('iframe[title="Archived report saved"]').getByRole('heading', { name: 'Archived Park starts' })).toBeVisible();
 });

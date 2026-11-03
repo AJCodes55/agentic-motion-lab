@@ -27,3 +27,15 @@ details > summary { cursor: pointer; padding-block: 12px; color: #075f5b; text-d
 iframe { display: block; background: white; border: 1px solid #cbd5e1; border-radius: 6px; }
 @media (max-width: 480px) { .panel { padding: 16px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+
+button.remove-month { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 24px; width: 24px; min-height: 24px; height: 24px; padding: 0; border-radius: 50%; background: #e2e8f0; color: #475569; }
+button.remove-month:hover:not(:disabled) { background: #cbd5e1; color: #172b3a; }
+button.remove-month:active:not(:disabled) { background: #94a3b8; }
+button.remove-month:disabled { opacity: 0.5; }
+
+button.report-title { background: transparent; color: #075f5b; padding: 8px 0; border-radius: 0; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+button.report-title:hover:not(:disabled) { color: #034440; text-decoration-thickness: 2px; }
+button.report-title:disabled { background: transparent; color: #475569; }
+.trace-disclosure > summary .trace-show-less { display: none; }
+.trace-disclosure[open] > summary .trace-show-more { display: none; }
+.trace-disclosure[open] > summary .trace-show-less { display: inline; }

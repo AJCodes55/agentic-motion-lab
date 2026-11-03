@@ -19,7 +19,9 @@ from .config import Settings
 from .service import IngestionService
 from .baseline import BaselineReport, generate_standard_dashboard
 from .agent import AgentRun, AgentService
+from .tracing import TraceRecorder
 from .llm import OpenAIProvider
+from .comparison import ComparisonRequest, ComparisonService
 from .adhoc import AdhocRequest, AdhocResult, AdhocService
 from .history import ReportHistoryEntry, list_report_history, read_archived_report
 from .contracts import Contract
@@ -128,6 +130,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def periods() -> ApiResponse[AvailablePeriods]:
         return ApiResponse(success=True, data=AvailablePeriods(periods=service.store.list_active()), error=None)
 
+    @app.post('/periods/remove', response_model=ApiResponse[AvailablePeriods])
+    def remove_period(body: FetchRequest, request: Request):
+        try:
+            service.store.retire(body.period)
+        except KeyError:
+            return error_response(request, 404, 'HTTP_ERROR', 'No accepted dataset exists for that month.')
+        return ApiResponse(success=True, data=AvailablePeriods(periods=service.store.list_active()), error=None)
+
     @app.post('/reports', response_model=ApiResponse[BaselineReport])
     def report(body: FetchRequest, request: Request):
         try:
@@ -169,15 +179,45 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         events: Queue[dict | None] = Queue()
 
         def produce() -> None:
+            trace = TraceRecorder(events.put)
             try:
                 result = AgentService(service.store, OpenAIProvider(settings)).run(
-                    body.period, body.command, body.station_id, progress=events.put)
+                    body.period, body.command, body.station_id, progress=events.put, debug_trace=trace)
                 events.put({'type': 'result', 'data': result.model_dump(mode='json')})
             except KeyError:
+                trace.record('error', 'request_failed', 'No accepted dataset exists for the reporting month.', status='failed')
                 events.put({'type': 'error', 'message': 'No accepted dataset exists for the reporting month.'})
             except Exception as error:
                 logger.error('agent_stream_failed', extra={'exception_type': type(error).__name__})
+                trace.record('error', 'request_failed', 'The service could not complete the request.', status='failed')
                 events.put({'type': 'error', 'message': 'The service could not complete the request.'})
+            finally:
+                events.put(None)
+
+        Thread(target=produce, daemon=True).start()
+
+        def stream():
+            while (event := events.get()) is not None:
+                yield json.dumps(event, allow_nan=False) + '\n'
+
+        return StreamingResponse(stream(), media_type='application/x-ndjson',
+                                 headers={'Cache-Control': 'no-store'})
+
+    @app.post('/comparisons/stream')
+    def comparison_stream(body: ComparisonRequest) -> StreamingResponse:
+        events: Queue[dict | None] = Queue()
+
+        def produce() -> None:
+            try:
+                result = ComparisonService(service.store, OpenAIProvider(settings)).run(body.period, events.put)
+                events.put({'type': 'result', 'data': result.model_dump(mode='json')})
+            except KeyError:
+                events.put({'type': 'error', 'message': 'Both January and February 2026 must be accepted before this demo.'})
+            except ValueError:
+                events.put({'type': 'error', 'message': 'Comparison requires February 2026 and valid pinned January/February evidence.'})
+            except Exception as error:
+                logger.error('comparison_stream_failed', extra={'exception_type': type(error).__name__})
+                events.put({'type': 'error', 'message': 'The comparison could not be completed or archived.'})
             finally:
                 events.put(None)
 

@@ -28,6 +28,8 @@ def validate_reports(store):
         if not directory.is_dir() or not re.fullmatch('[a-f0-9]{32}', directory.name):
             unknown.append(f'reports/{directory.name}')
             continue
+        if any(directory.glob('.comparison-*.tmp')):
+            raise ValueError('Incomplete comparison archive requires review before backup or cleanup')
         baseline = BaselineReport.model_validate_json((directory / 'evidence.json').read_text())
         if baseline.report_id != directory.name or not baseline.datasets:
             raise ValueError('Invalid report identity or missing dataset references')
@@ -42,6 +44,10 @@ def validate_reports(store):
         read_archived_report(store, directory.name)
         if (directory / 'index.html').read_text() != baseline.html:
             raise ValueError('Baseline archive HTML mismatch')
+        comparison = directory / 'comparison.json'
+        if comparison.exists() or comparison.is_symlink():
+            from mobility.comparison import validate_archive
+            validate_archive(store, directory.name)
         reports[directory.name] = [ref.version_id for ref in baseline.datasets]
     return reports, unknown
 

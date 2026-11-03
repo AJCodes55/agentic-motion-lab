@@ -6,10 +6,11 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from mobility.agent_tools import AgentTools
-from mobility.analytics import prior_period
+from mobility.analytics import CATEGORIES, prior_period
 from mobility.baseline import BaselineReport, generate_standard_dashboard, _table, _report_document, _chart_region
 from mobility.contracts import Contract, DatasetReference, Period, ToolArguments, ToolResult
 from mobility.storage import DatasetStore
+from mobility.tracing import TraceRecorder
 
 
 class AdhocRequest(Contract):
@@ -66,7 +67,9 @@ def make_chart(title: str, source: ToolResult, run_id: str) -> str:
     maximum = max((abs(value.exact_tool_value) for value in plotted), default=1) or 1
     rows = []
     for index, value in enumerate(plotted):
-        label = f'{value.period.year:04d}-{value.period.month:02d} {value.category or value.entity_id} {value.metric_type}'
+        subject = (f'#{value.ranking.rank} {value.ranking.station_name}' if value.ranking is not None
+                   else value.category or value.entity_id)
+        label = f'{value.period.year:04d}-{value.period.month:02d} {subject} {value.metric_type}'
         label = label.replace('Unknown', 'Unknown (unclassified)')
         number = value.exact_tool_value
         y = 40 + 40 * index
@@ -74,6 +77,204 @@ def make_chart(title: str, source: ToolResult, run_id: str) -> str:
         x = 490 - width if number < 0 else 490
         rows.append(f'<text x="5" y="{y}">{escape(label)}</text><rect x="{x:.3f}" y="{y-15}" width="{width:.3f}" height="20" fill="#155e75"/><text x="720" y="{y}">{escape(_display(number))} {escape(value.unit)}</text>')
     return f'<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{escape(title, quote=True)}" viewBox="0 0 930 {max(100, 60+40*len(plotted))}"><title>{escape(title)}</title>{"".join(rows)}</svg>'
+
+
+_MONTHS = ('January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December')
+_SEGMENT_COLOR = {'Member': '#1d4e89', 'Casual': '#5c7a6e', 'Classic': '#3d5a4c', 'E-bike': '#6b5b7a', 'Unknown': '#8d8279'}
+_SHARE_REASON = {
+    'removed': 'Percentage withheld. This month has no trips at this station.',
+    'new': 'Percentage withheld. The previous month has no trips at this station.',
+    'prior_sample_below_100': 'Share withheld. The previous sample is below 100 trips.',
+    'zero_total_change': 'Share withheld. The station total did not change.',
+}
+
+
+def _month_label(period: Period) -> str:
+    return f'{_MONTHS[period.month - 1]} {period.year}'
+
+
+def _whole(number):
+    return int(number) if isinstance(number, float) and number.is_integer() else number
+
+
+def _trips(number) -> str:
+    number = _whole(number)
+    return f'{"−" if number < 0 else ""}{abs(number):,}'
+
+
+def _percent(number) -> str:
+    return f'{"−" if number < 0 else ""}{abs(float(number)):.2f}%'
+
+
+def _match(values, metric, *, period=None, other_than=None, dimension=None, category=None, station_level=False):
+    found = []
+    for value in values:
+        if value.metric_type != metric:
+            continue
+        if station_level and (value.dimension is not None or value.category is not None):
+            continue
+        if dimension is not None and value.dimension != dimension:
+            continue
+        if category is not None and value.category != category:
+            continue
+        if period is not None and value.period != period:
+            continue
+        if other_than is not None and value.period == other_than:
+            continue
+        found.append(value)
+    return found[0] if len(found) == 1 else None
+
+
+def _shown_count(value) -> str:
+    return 'Unavailable' if value is None or value.exact_tool_value is None else _trips(value.exact_tool_value)
+
+
+def _segment_panel(values, period, dimension, title, share_name) -> str:
+    categories = tuple(category for category in CATEGORIES[dimension] if category != 'Unknown')
+    amounts = []
+    for category in categories:
+        change = _match(values, 'absolute_change', dimension=dimension, category=category)
+        amounts.append(None if change is None or change.exact_tool_value is None else abs(change.exact_tool_value))
+    scale = max((amount for amount in amounts if amount is not None), default=0)
+    rows = []
+    for category in categories:
+        current = _match(values, 'current_volume', period=period, dimension=dimension, category=category)
+        prior = _match(values, 'current_volume', other_than=period, dimension=dimension, category=category)
+        change = _match(values, 'absolute_change', dimension=dimension, category=category)
+        share = _match(values, 'contribution', dimension=dimension, category=category)
+        amount = None if change is None or change.exact_tool_value is None else abs(change.exact_tool_value)
+        width = 0 if not scale or amount is None else amount / scale * 100
+        if share is not None and share.eligible and share.exact_tool_value is not None:
+            share_text = _percent(share.exact_tool_value)
+        else:
+            reason = None if share is None else share.eligibility_reason
+            share_text = _SHARE_REASON.get(reason, 'Share withheld.')
+        prior_label = _month_label(prior.period) if prior is not None else 'Previous month'
+        rows.append(
+            f'<li class="seg"><div class="seg-top"><span class="seg-name">{escape(category)}</span>'
+            f'<span>{escape(_shown_count(change))} trips · {escape(share_text)}</span></div>'
+            f'<div class="bar" role="img" aria-label="{escape(category)} {escape(_shown_count(change))} trips, {escape(share_text)}">'
+            f'<span style="width:{width:.1f}%;background:{_SEGMENT_COLOR[category]}"></span></div>'
+            f'<span class="meta">{escape(prior_label)} {escape(_shown_count(prior))} · {escape(_month_label(period))} {escape(_shown_count(current))}</span></li>')
+    return (f'<section class="panel" aria-label="{escape(title)}"><h2>{escape(title)}</h2>'
+            f'<p class="meta">{escape(share_name)}</p><ul>{"".join(rows)}</ul></section>')
+
+
+def _station_dashboard(result: ToolResult, period: Period, title: str) -> str:
+    """Static station comparison. The month and station are chosen before this report is built."""
+    values = result.values
+    heading = title.removeprefix('Station starts: ')
+    location, station_id = heading, ''
+    if heading.endswith(')') and ' (' in heading:
+        location, _, station_id = heading.rpartition(' (')
+        station_id = station_id[:-1]
+    identity = f'<p><strong>Station:</strong> {escape(station_id or location)}</p>'
+    if station_id and location != station_id:
+        identity += f'<p><strong>Location:</strong> {escape(location)}</p>'
+    current_volume = _match(values, 'current_volume', period=period, station_level=True)
+    prior_volume = _match(values, 'current_volume', other_than=period, station_level=True)
+    change = _match(values, 'absolute_change', station_level=True)
+    percentage = _match(values, 'percentage_change', station_level=True)
+    current_count = None if current_volume is None else current_volume.exact_tool_value
+    prior_count = None if prior_volume is None else prior_volume.exact_tool_value
+    delta = None if change is None else change.exact_tool_value
+    current_label = _month_label(period)
+    prior_label = _month_label(prior_volume.period) if prior_volume is not None else 'Previous month'
+    if delta is not None and delta < 0:
+        rider_title, bike_title, share_name, change_class = 'Trip loss by rider type', 'Trip loss by bike type', 'Share of lost trips', 'decline'
+    elif delta is not None and delta > 0:
+        rider_title, bike_title, share_name, change_class = 'Trip gain by rider type', 'Trip gain by bike type', 'Share of added trips', ''
+    else:
+        rider_title, bike_title, share_name, change_class = 'Rider type', 'Bike type', 'Share of the change', ''
+    change_text = 'Unavailable' if delta is None else f'{_trips(delta)} trips'
+    if percentage is not None and percentage.eligible and percentage.exact_tool_value is not None:
+        change_text += f' ({_percent(percentage.exact_tool_value)})'
+        percent_note = ''
+    else:
+        reason = None if percentage is None else percentage.eligibility_reason
+        percent_note = _SHARE_REASON.get(reason, 'Percentage withheld.')
+    zero_note = ''
+    if current_count == 0 and prior_count not in (None, 0):
+        zero_note = (f'<p class="report-note">{escape(current_label)} recorded volume is zero. Investigate whether this reflects '
+                     'station removal, closure, or a data issue before attributing the decline to demand.</p>')
+    panels = ''.join(_segment_panel(values, period, dimension, panel_title, share_name) for dimension, panel_title in (
+        ('member_casual', rider_title), ('rideable_type', bike_title)))
+    note = f'<span>{escape(percent_note)}</span>' if percent_note else ''
+    return f'''<style>
+    .station-dash{{display:grid;gap:1.25rem}}
+    .station-dash .kpis{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}}
+    .station-dash .kpi,.station-dash .panel{{border:1px solid #e2e8f0;border-radius:8px;padding:1rem;background:#fff}}
+    .station-dash .kpi span,.station-dash .meta{{display:block;color:#425563;font-size:.95rem}}
+    .station-dash .kpi strong{{display:block;font-size:1.75rem;line-height:1.2}}
+    .station-dash .decline strong{{color:#9f1239}}
+    .station-dash .panels{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}}
+    .station-dash ul{{list-style:none;margin:0;padding:0}}
+    .station-dash .seg{{display:grid;gap:.35rem;margin-top:1rem}}
+    .station-dash .seg-top{{display:flex;justify-content:space-between;gap:1rem}}
+    .station-dash .bar{{height:.7rem;background:#eef3f5;border-radius:999px;overflow:hidden}}
+    .station-dash .bar span{{display:block;height:100%}}
+    @media(max-width:700px){{.station-dash .kpis,.station-dash .panels{{grid-template-columns:1fr}}}}
+    </style>
+    <section class="station-dash" aria-label="Station performance">
+      {identity}
+      <p class="meta">Comparison: {escape(prior_label)} vs. {escape(current_label)}</p>
+      <div class="kpis">
+        <div class="kpi"><span>{escape(prior_label)} trips</span><strong>{escape(_shown_count(prior_volume))}</strong></div>
+        <div class="kpi"><span>{escape(current_label)} trips</span><strong>{escape(_shown_count(current_volume))}</strong></div>
+        <div class="kpi {change_class}"><span>Absolute change</span><strong>{escape(change_text)}</strong>{note}</div>
+      </div>
+      {zero_note}
+      <div class="panels">{panels}</div>
+      <p class="report-note">Rider type and bike type are separate splits of the same station change. Do not add them together.</p>
+    </section>'''
+
+
+_RANK_LABELS = {
+    'total_starts': ('total starts', 'Starts'), 'total_ends': ('total trip ends', 'Trip ends'),
+    'ebike_share_pct': ('e-bike share', 'E-bike share (%)'), 'casual_share_pct': ('casual share', 'Casual share (%)'),
+    'avg_duration_min': ('average trip duration', 'Average duration (minutes)'),
+}
+_RANK_FILTERS = {'member': 'members', 'casual': 'casual riders', 'classic_bike': 'classic bikes', 'electric_bike': 'e-bikes'}
+
+
+def ranking_title(ranking: dict, period: Period) -> str:
+    label = _RANK_LABELS[ranking['metric']][0]
+    direction = 'Top' if ranking['order'] == 'top' else 'Bottom'
+    return f'Station ranking: {direction} {ranking["limit"]} by {label}, {_month_label(period)}'
+
+
+def ranking_report(ranking: dict, period: Period, *, variance: ToolResult | None = None,
+                   chart_svg: str | None = None, narrative: str = '') -> str:
+    """Leaderboard from the exact rank_stations payload, then the optional station comparison and verified findings."""
+    label, column = _RANK_LABELS[ranking['metric']]
+    scope = [_RANK_FILTERS[value] for value in (ranking['filter_by'] or {}).values() if value is not None]
+    meta = f'{ranking["eligible_station_count"]:,} stations ranked by {label}'
+    meta += f' among {" on ".join(scope)}.' if scope else '.'
+    if ranking['minimum_sample'] is not None:
+        meta += (f' {ranking["excluded_low_sample_count"]:,} stations with fewer than '
+                 f'{ranking["minimum_sample"]} starts were excluded.')
+    rows = []
+    for row in ranking['rows']:
+        notes = ['Tied value'] if row['is_tied'] else []
+        if ranking['minimum_sample'] is not None:
+            notes.append(f'Meets {ranking["minimum_sample"]}-start minimum')
+        rows.append((row['rank'], row['station_id'], row['station_name'], row['metric_value'],
+                     row['total_starts'], '; '.join(notes)))
+    body = (f'<section aria-label="Station leaderboard"><h2>Station leaderboard</h2><p class="report-note">{escape(meta)}</p>'
+            + _table(('Rank', 'Station ID', 'Station', column, 'Total starts', 'Notes'), rows)
+            + ('<p class="report-note">No station met the ranking rules for this month.</p>' if not rows else '')
+            + '</section>')
+    if chart_svg:
+        body += ('<p class="report-note">Exact values are provided in the table. Scroll the chart horizontally on narrow '
+                 'screens.</p>' + _chart_region(chart_svg))
+    if variance is not None:
+        station = variance.arguments.station_id
+        name = next((row['station_name'] for row in ranking['rows'] if row['station_id'] == station), station)
+        body += ('<section aria-label="Station comparison"><h2>Station comparison</h2>'
+                 + _station_dashboard(variance, period, f'Station starts: {name} ({station})') + '</section>')
+    if narrative:
+        body += f'<section aria-label="Verified findings"><h2>Verified findings</h2>{narrative}</section>'
+    return _report_document(ranking_title(ranking, period), body)
 
 
 class AdhocService:
@@ -99,7 +300,9 @@ class AdhocService:
             ids = exact or [key for key, names in stations.items() if query in key.casefold() or any(query in name.casefold() for name in names)]
         return tuple(StationChoice(station_id=key, station_name=sorted(stations[key])[0]) for key in sorted(ids))
 
-    def run(self, request: AdhocRequest, baseline: BaselineReport | None = None) -> AdhocResult:
+    def run(self, request: AdhocRequest, baseline: BaselineReport | None = None,
+            trace: TraceRecorder | None = None) -> AdhocResult:
+        trace = trace or TraceRecorder()
         request = AdhocRequest.model_validate(request)
         if baseline is not None and baseline.period != request.period:
             raise ValueError('Baseline reporting month does not match request')
@@ -124,6 +327,9 @@ class AdhocService:
             return self._refusal(request, 'The preceding month is unavailable in this reporting snapshot.')
         if request.metric == 'station_starts':
             choices = self._choices(refs, request)
+            trace.record('routing', 'station_lookup', 'Application matched station identifiers and names in the pinned data.',
+                         inputs=request.model_dump(mode='json'),
+                         output=[choice.model_dump(mode='json') for choice in choices])
             if (request.station_id is None and request.station_query is None) or len(choices) > 1:
                 return AdhocResult(status='needs_station_selection', period=request.period,
                     message='Select an explicit station and submit the reporting month again.', station_choices=choices)
@@ -131,7 +337,7 @@ class AdhocService:
                 return self._refusal(request, 'No matching start station exists in the requested months.')
         # Every selected calculation uses the baseline's immutable snapshot, even after replacement.
         refs = baseline.datasets if request.comparison else (baseline.datasets[0],)
-        tools = AgentTools(self.store, refs, baseline.report_id)
+        tools = AgentTools(self.store, refs, baseline.report_id, trace=trace)
         available_result, _ = tools.execute('get_available_periods', ToolArguments(), 'adhoc_available')
         result, title = self._calculate(request, refs, tools)
         if result is None:
@@ -139,14 +345,20 @@ class AdhocService:
         if result.status != 'success':
             return self._refusal(request, 'The requested calculation could not be verified.')
         values = result.values
-        chart = make_chart(title, result, baseline.report_id) if request.chart else None
+        station_comparison = request.metric == 'station_starts' and request.comparison and result.tool_name == 'analyze_station_variance'
+        chart = None if station_comparison else make_chart(title, result, baseline.report_id) if request.chart else None
         evidence = (available_result, result)
         if chart:
+            trace.record('rendering', 'make_chart', 'Application rendered a chart from verified evidence.',
+                         inputs=result.model_dump(mode='json'), output={'svg': chart})
             evidence += (result.model_copy(update={'tool_name': 'make_chart', 'tool_call_id': 'adhoc_chart', 'stage': 'rendering'}),)
-        rows = ((f'{v.period.year:04d}-{v.period.month:02d}', (v.category or v.entity_id).replace('Unknown', 'Unknown (unclassified)'), v.metric_type, _display(v.exact_tool_value), v.unit, v.eligibility_reason or '') for v in values)
-        body = _table(('Month', 'Entity / category', 'Metric', 'Value', 'Unit', 'Eligibility reason'), rows)
-        if chart:
-            body += '<p class="report-note">Exact values are provided in the table. Scroll the chart horizontally on narrow screens.</p>' + _chart_region(chart)
+        if station_comparison:
+            body = _station_dashboard(result, request.period, title)
+        else:
+            rows = ((f'{v.period.year:04d}-{v.period.month:02d}', (v.category or v.entity_id).replace('Unknown', 'Unknown (unclassified)'), v.metric_type, _display(v.exact_tool_value), v.unit, v.eligibility_reason or '') for v in values)
+            body = _table(('Month', 'Entity / category', 'Metric', 'Value', 'Unit', 'Eligibility reason'), rows)
+            if chart:
+                body += '<p class="report-note">Exact values are provided in the table. Scroll the chart horizontally on narrow screens.</p>' + _chart_region(chart)
         html = _report_document(title, body)
         output = AdhocResult(status='success', message=title, period=request.period,
             report_id=baseline.report_id, datasets=refs, html=html, evidence=evidence, chart_svg=chart)
@@ -168,6 +380,9 @@ class AdhocService:
                 count = int((frame['start_station_id'] == station.station_id).sum())
                 value = AgentTools._value(refs[0], station.station_id, 'current_volume', count)
                 result = ToolResult(run_id=tools.run_id, tool_call_id='adhoc_query', stage='execution', tool_name='station_analysis', status='success', arguments=args.model_copy(update={'station_id': station.station_id}), datasets=refs, values=(value,))
+                tools.trace.record('execution', 'station_start_count', 'Application counted starts for the resolved station.',
+                                   inputs={'station_id': station.station_id, 'dataset': refs[0].model_dump(mode='json')},
+                                   output={'total_starts': count})
             return result, f'Station starts: {station.station_name} ({station.station_id})'
         tool = 'compare_periods' if request.comparison else 'kpi_summary'
         result, _ = tools.execute(tool, args, 'adhoc_query')

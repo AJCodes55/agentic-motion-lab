@@ -38,7 +38,7 @@ def _same_value(left: int | float | None, right: int | float | None) -> bool:
 
 def _matches(claim: Claim, value: EvidenceValue) -> bool:
     fields = ('entity_id', 'metric_type', 'period', 'comparison_period', 'dimension',
-              'category', 'unit', 'eligible', 'eligibility_reason')
+              'category', 'unit', 'eligible', 'eligibility_reason', 'ranking')
     return all(getattr(claim, field) == getattr(value, field) for field in fields) and _same_value(
         claim.exact_tool_value, value.exact_tool_value)
 
@@ -73,7 +73,7 @@ def _transition_matches(claim: Claim) -> bool:
 
 
 _METRIC_UNITS = {
-    'trip_count': {'trips'}, 'current_volume': {'trips'},
+    'trip_count': {'trips'}, 'current_volume': {'trips'}, 'end_volume': {'trips'},
     'share': {'percent'}, 'average_duration_minutes': {'minutes'},
     'absolute_change': {'trips', 'minutes', 'percentage_points'},
     'percentage_change': {'percent'}, 'contribution': {'percent'},
@@ -133,8 +133,32 @@ _METRICS = {
     'trip_count': 'trip count', 'share': 'share',
     'average_duration_minutes': 'average trip duration',
     'absolute_change': 'absolute change', 'percentage_change': 'percentage change',
-    'contribution': 'contribution', 'current_volume': 'current volume',
+    'contribution': 'contribution', 'current_volume': 'current volume', 'end_volume': 'trip ends',
 }
+
+_RANK_METRICS = {
+    'total_starts': 'total starts', 'total_ends': 'total trip ends', 'ebike_share_pct': 'e-bike share',
+    'casual_share_pct': 'casual share', 'avg_duration_min': 'average trip duration',
+}
+_FILTERS = {'member': 'members', 'casual': 'casual riders', 'classic_bike': 'classic bikes', 'electric_bike': 'e-bikes'}
+
+
+def _ranking_statement(claim: Claim) -> str:
+    from mobility.agent_tools import RANKED_VALUE
+
+    ranking = claim.ranking
+    station = f'{escape(ranking.station_name)} ({escape(claim.entity_id, quote=True)})'
+    position = f'ranked #{ranking.rank} ({"highest" if ranking.order == "top" else "lowest"}{", tied" if ranking.tied else ""})'
+    basis = _RANK_METRICS[ranking.ranked_by]
+    if ranking.filter_by is not None:
+        scope = [_FILTERS[value] for value in ranking.filter_by.model_dump().values() if value is not None]
+        if scope:
+            basis += ' among ' + ' on '.join(scope)
+    date = f'{claim.period.year:04d}-{claim.period.month:02d}'
+    value = f'{_format_value(claim.exact_tool_value)} {_UNITS[claim.unit]}'
+    if claim.metric_type == RANKED_VALUE[ranking.ranked_by][0]:
+        return f'{station} {position} by {basis} for {date}: {value}.'
+    return f'{station}, {position} by {basis}, had {_METRICS[claim.metric_type]} for {date}: {value}.'
 
 _UNITS = {'trips': 'trips', 'percent': '%', 'minutes': 'minutes', 'percentage_points': 'percentage points'}
 
@@ -150,6 +174,11 @@ def render_verified_claims(claims: VerifiedClaims) -> str:
     """Render only validated data with fixed text and escaped identifiers."""
     if not isinstance(claims, VerifiedClaims):
         raise GroundingError('Claims must be validated before rendering')
+    return _render_claims(claims)
+
+
+def _render_claims(claims: tuple[Claim, ...]) -> str:
+    """Fixed escaped templates; evaluation ablation may supply unverified claims."""
     lines = []
     rendered_contributions = set()
     for claim in claims:
@@ -164,6 +193,9 @@ def render_verified_claims(claims: VerifiedClaims) -> str:
                 and (item.tool_call_id, item.entity_id, item.dimension, item.period, item.comparison_period) == group)
             date = f'{claim.period.year:04d}-{claim.period.month:02d}'
             lines.append(f'<p>For {escape(claim.entity_id, quote=True)} {escape(claim.dimension.replace("_", " "), quote=True)} in {date}: {escape(_wording(leaders))}</p>')
+            continue
+        if claim.ranking is not None:
+            lines.append(f'<p>{_TRANSITIONS["standalone"]} {_ranking_statement(claim)}</p>')
             continue
         subject = escape(claim.entity_id, quote=True)
         if claim.dimension is not None:
