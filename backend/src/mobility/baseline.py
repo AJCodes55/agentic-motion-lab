@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from mobility.contracts import Contract, DatasetReference, Period, ToolResult
 from mobility.storage import DatasetStore
+from mobility.tracing import TraceRecorder
 
 
 class BaselineReport(Contract):
@@ -122,10 +123,12 @@ def _document(period, sections):
     return _report_document(f'Monthly mobility baseline: {period.year:04d}-{period.month:02d}', body)
 
 
-def generate_standard_dashboard(store: DatasetStore, period: Period) -> BaselineReport:
+def generate_standard_dashboard(store: DatasetStore, period: Period,
+                                trace: TraceRecorder | None = None) -> BaselineReport:
     from mobility.analytics import AnalyticsService, prior_period
     from mobility.contracts import EvidenceValue, ToolArguments
 
+    trace = trace or TraceRecorder()
     period = Period.model_validate(period)
     try:
         prior = prior_period(period)
@@ -134,6 +137,9 @@ def generate_standard_dashboard(store: DatasetStore, period: Period) -> Baseline
     available = {item.period for item in store.list_active()}
     periods = (period, prior) if prior in available else (period,)
     refs = store.pin_periods(periods)
+    trace.record('baseline', 'dataset_selection', 'Application pinned the selected month and available preceding month.',
+                 inputs={'period': period.model_dump(mode='json')},
+                 output=[ref.model_dump(mode='json') for ref in refs])
     report_id = uuid4().hex
     service = AnalyticsService(store)
     evidence = []
@@ -144,8 +150,21 @@ def generate_standard_dashboard(store: DatasetStore, period: Period) -> Baseline
     def record(tool, datasets, values):
         evidence.append(ToolResult(run_id=report_id, tool_call_id=f'{report_id}_{len(evidence)}', stage='baseline', tool_name=tool, status='success', arguments=ToolArguments(current_period=datasets[0].period, comparison_period=datasets[1].period if len(datasets) == 2 else None), datasets=datasets, values=tuple(values)))
 
-    summaries = tuple(service.kpi_summary(ref) for ref in refs)
-    trends = tuple(service.daily_trend(ref) for ref in refs)
+    def calculate(name, *datasets, **kwargs):
+        inputs = {'datasets': [ref.model_dump(mode='json') for ref in datasets], **kwargs}
+        trace.record('baseline', name, 'Preparing the standard baseline calculation.',
+                     status='started', source='application', inputs=inputs)
+        try:
+            result = getattr(service, name)(*datasets, **kwargs)
+        except Exception:
+            trace.record('baseline', name, 'Baseline calculation failed.', status='failed', inputs=inputs)
+            raise
+        trace.record('baseline', name, 'Application calculated baseline metrics.',
+                     inputs=inputs, output=result.model_dump(mode='json'))
+        return result
+
+    summaries = tuple(calculate('kpi_summary', ref) for ref in refs)
+    trends = tuple(calculate('daily_trend', ref) for ref in refs)
     for ref, summary, trend in zip(refs, summaries, trends):
         metrics = [value(ref, 'month', 'trip_count', summary.total_trips), value(ref, 'month', 'average_duration_minutes', summary.average_duration_minutes, 'minutes')]
         for dimension in ('member_casual', 'rideable_type'):
@@ -156,7 +175,7 @@ def generate_standard_dashboard(store: DatasetStore, period: Period) -> Baseline
     score = _table(('Month', 'Total trips', 'Average duration (minutes)'), score_rows)
     score += ''.join(f'<h3>{dimension.replace("_", " ")}</h3>' + _table(('Category', 'Trips', 'Share (%)'), ((_label(item.category), item.count, item.share) for item in getattr(summaries[0], dimension))) for dimension in ('member_casual', 'rideable_type'))
     if len(refs) == 2:
-        comparison = service.compare_periods(*refs)
+        comparison = calculate('compare_periods', *refs)
         change_values = []
         for metric in comparison.metrics:
             kwargs = {'comparison_period': refs[1].period, 'dimension': metric.dimension, 'category': metric.category}
@@ -169,7 +188,7 @@ def generate_standard_dashboard(store: DatasetStore, period: Period) -> Baseline
         score += _table(('Metric', 'Category', 'Current', 'Prior', 'Change', 'Unit', 'Change (%)', 'Eligible', 'Reason', 'Materiality'), (
             (metric.metric, _label(metric.category) if metric.category else '', metric.current_value, metric.prior_value, metric.delta, metric.unit, metric.percentage_change if metric.percentage_change is not None else 'N/A', metric.eligible, metric.eligibility_reason or '', metric.materiality or 'N/A')
             for metric in comparison.metrics))
-        movers = service.station_movers(*refs)
+        movers = calculate('station_movers', *refs)
         station_groups = (('Top five increases', movers.top_5_increases), ('Top five decreases', movers.top_5_decreases))
         station_values = []
         all_items = tuple(item for _, items in station_groups for item in items)
@@ -186,7 +205,7 @@ def generate_standard_dashboard(store: DatasetStore, period: Period) -> Baseline
         record('station_movers', refs, station_values)
     else:
         score += '<p>Prior month unavailable. Standalone report; month-over-month comparisons are unavailable.</p>'
-        ranking = service.station_analysis(refs[0], top_n=5)
+        ranking = calculate('station_analysis', refs[0], top_n=5)
         station_groups = (('Top five stations by starts', ranking.stations),)
         record('station_analysis', refs, (value(refs[0], item.station_id, 'trip_count', item.current_count) for item in ranking.stations))
     station_html = ''.join(f'<h3>{title}</h3>' + _table(('Station ID', 'Station', 'Current starts', 'Prior starts', 'Change', 'Change (%)', 'Eligible', 'Eligibility reason', 'Status', 'Materiality'), _station_rows(items)) for title, items in station_groups)
@@ -204,4 +223,6 @@ def generate_standard_dashboard(store: DatasetStore, period: Period) -> Baseline
     sections = (('KPI Scorecard', score), ('Daily Trend', daily), ('Mix Breakdowns', mix), ('Top Stations / Movers', station_html), ('Data-Quality Summary', _quality(store, refs)))
     report = BaselineReport(report_id=report_id, period=period, datasets=refs, html=_document(period, sections), evidence=tuple(evidence))
     _archive(store, report, assets)
+    trace.record('baseline', 'baseline_rendering', 'Application rendered and archived the standard baseline.',
+                 output={'report_id': report.report_id})
     return report

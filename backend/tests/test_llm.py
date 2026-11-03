@@ -135,3 +135,37 @@ def test_blank_key_fails_closed():
     provider = OpenAIProvider(Settings(openai_api_key=' '))
     with pytest.raises(ProviderUnavailable):
         provider.request(Answer, 'Select', {})
+
+
+def test_plain_text_baseline_has_no_schema_tools_or_retry():
+    requests = []
+    def handle(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json=completion('An unverified answer: 123 trips.'))
+    provider = OpenAIProvider(configured(), transport=httpx.MockTransport(handle))
+    result = provider.request_text('Answer from summary', {'question': 'Trips?', 'summary': {}})
+    assert result.value == 'An unverified answer: 123 trips.'
+    assert result.usage.total_tokens == 16
+    assert len(requests) == 1
+    assert not {'response_format', 'tools', 'tool_choice'} & requests[0].keys()
+
+
+def test_plain_text_provider_failure_is_one_request():
+    calls = []
+    def handle(request):
+        calls.append(request)
+        return httpx.Response(500, text='secret')
+    provider = OpenAIProvider(configured(), transport=httpx.MockTransport(handle))
+    with pytest.raises(ProviderUnavailable):
+        provider.request_text('Answer', {})
+    assert len(calls) == 1
+
+
+def test_plain_text_preserves_truncated_answer_and_usage():
+    data = completion('Partial answer')
+    data['choices'][0]['finish_reason'] = 'length'
+    provider = OpenAIProvider(configured(), transport=httpx.MockTransport(lambda _: httpx.Response(200, json=data)))
+    result = provider.request_text('Answer', {})
+    assert result.value == 'Partial answer'
+    assert result.finish_reason == 'length'
+    assert result.usage.total_tokens == 16

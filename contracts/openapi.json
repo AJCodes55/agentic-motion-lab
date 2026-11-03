@@ -174,6 +174,7 @@
                 "type": "null"
               }
             ],
+            "default": null,
             "title": "Candidate Id"
           },
           "counters": {
@@ -251,6 +252,7 @@
                 "type": "null"
               }
             ],
+            "default": null,
             "title": "Validation Reason"
           },
           "warning": {
@@ -712,6 +714,55 @@
         "title": "AvailablePeriods",
         "type": "object"
       },
+      "BaselineInput": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/DatasetReference"
+          },
+          "quality": {
+            "additionalProperties": true,
+            "title": "Quality",
+            "type": "object"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          }
+        },
+        "required": [
+          "dataset",
+          "quality",
+          "sources"
+        ],
+        "title": "BaselineInput",
+        "type": "object"
+      },
+      "BaselineReadyTiming": {
+        "additionalProperties": false,
+        "properties": {
+          "python_calculation": {
+            "minimum": 0,
+            "title": "Python Calculation",
+            "type": "number"
+          },
+          "shared_preparation": {
+            "minimum": 0,
+            "title": "Shared Preparation",
+            "type": "number"
+          }
+        },
+        "required": [
+          "shared_preparation",
+          "python_calculation"
+        ],
+        "title": "BaselineReadyTiming",
+        "type": "object"
+      },
       "BaselineReport": {
         "additionalProperties": false,
         "properties": {
@@ -755,6 +806,31 @@
           "evidence"
         ],
         "title": "BaselineReport",
+        "type": "object"
+      },
+      "BaselineStation": {
+        "additionalProperties": false,
+        "properties": {
+          "ride_count": {
+            "minimum": 0,
+            "title": "Ride Count",
+            "type": "integer"
+          },
+          "station_id": {
+            "title": "Station Id",
+            "type": "string"
+          },
+          "station_name": {
+            "title": "Station Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "station_id",
+          "station_name",
+          "ride_count"
+        ],
+        "title": "BaselineStation",
         "type": "object"
       },
       "CategoryMapping": {
@@ -897,13 +973,25 @@
               "absolute_change",
               "percentage_change",
               "contribution",
-              "current_volume"
+              "current_volume",
+              "end_volume"
             ],
             "title": "Metric Type",
             "type": "string"
           },
           "period": {
             "$ref": "#/components/schemas/Period"
+          },
+          "ranking": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankContext"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           },
           "run_id": {
             "maxLength": 128,
@@ -952,6 +1040,346 @@
           "transition"
         ],
         "title": "Claim",
+        "type": "object"
+      },
+      "ComparisonBaselineEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PythonBaseline"
+          },
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetReference"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "report_id": {
+            "title": "Report Id",
+            "type": "string"
+          },
+          "timing_seconds": {
+            "$ref": "#/components/schemas/BaselineReadyTiming"
+          },
+          "type": {
+            "const": "baseline",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data",
+          "report_id",
+          "datasets",
+          "timing_seconds"
+        ],
+        "title": "ComparisonBaselineEvent",
+        "type": "object"
+      },
+      "ComparisonCandidateEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate_id": {
+            "title": "Candidate Id",
+            "type": "string"
+          },
+          "type": {
+            "const": "candidate",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "candidate_id"
+        ],
+        "title": "ComparisonCandidateEvent",
+        "type": "object"
+      },
+      "ComparisonErrorEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "const": "error",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "message"
+        ],
+        "title": "ComparisonErrorEvent",
+        "type": "object"
+      },
+      "ComparisonRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          }
+        },
+        "required": [
+          "period"
+        ],
+        "title": "ComparisonRequest",
+        "type": "object"
+      },
+      "ComparisonResult": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "$ref": "#/components/schemas/AgentRun"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/PythonBaseline"
+          },
+          "datasets": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetReference"
+            },
+            "title": "Datasets",
+            "type": "array"
+          },
+          "dollar_cost": {
+            "default": null,
+            "title": "Dollar Cost",
+            "type": "null"
+          },
+          "period": {
+            "$ref": "#/components/schemas/Period"
+          },
+          "report_id": {
+            "title": "Report Id",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ComparisonRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "timing_seconds": {
+            "$ref": "#/components/schemas/ComparisonTiming"
+          }
+        },
+        "required": [
+          "report_id",
+          "period",
+          "datasets",
+          "baseline",
+          "agent",
+          "rows",
+          "timing_seconds"
+        ],
+        "title": "ComparisonResult",
+        "type": "object"
+      },
+      "ComparisonResultEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ComparisonResult"
+          },
+          "type": {
+            "const": "result",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data"
+        ],
+        "title": "ComparisonResultEvent",
+        "type": "object"
+      },
+      "ComparisonRow": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_total": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent Total"
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difference"
+          },
+          "month": {
+            "title": "Month",
+            "type": "string"
+          },
+          "python_total": {
+            "minimum": 0,
+            "title": "Python Total",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "match",
+              "mismatch",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "month",
+          "python_total",
+          "agent_total",
+          "difference",
+          "status"
+        ],
+        "title": "ComparisonRow",
+        "type": "object"
+      },
+      "ComparisonStageEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "enum": [
+              "Data Ingest",
+              "Agent Planning",
+              "Tool Execution",
+              "Final Report Generation"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "complete",
+              "failed",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "const": "stage",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "status"
+        ],
+        "title": "ComparisonStageEvent",
+        "type": "object"
+      },
+      "ComparisonStreamEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "discriminator": {
+              "mapping": {
+                "baseline": "#/components/schemas/ComparisonBaselineEvent",
+                "candidate": "#/components/schemas/ComparisonCandidateEvent",
+                "error": "#/components/schemas/ComparisonErrorEvent",
+                "result": "#/components/schemas/ComparisonResultEvent",
+                "stage": "#/components/schemas/ComparisonStageEvent",
+                "tool": "#/components/schemas/ComparisonToolEvent"
+              },
+              "propertyName": "type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonBaselineEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ComparisonResultEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ComparisonErrorEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ComparisonStageEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ComparisonToolEvent"
+              },
+              {
+                "$ref": "#/components/schemas/ComparisonCandidateEvent"
+              }
+            ],
+            "title": "Event"
+          }
+        },
+        "required": [
+          "event"
+        ],
+        "title": "ComparisonStreamEvent",
+        "type": "object"
+      },
+      "ComparisonTiming": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_workflow": {
+            "minimum": 0,
+            "title": "Agent Workflow",
+            "type": "number"
+          },
+          "python_calculation": {
+            "minimum": 0,
+            "title": "Python Calculation",
+            "type": "number"
+          },
+          "shared_preparation": {
+            "minimum": 0,
+            "title": "Shared Preparation",
+            "type": "number"
+          }
+        },
+        "required": [
+          "shared_preparation",
+          "python_calculation",
+          "agent_workflow"
+        ],
+        "title": "ComparisonTiming",
+        "type": "object"
+      },
+      "ComparisonToolEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ToolResult"
+          },
+          "type": {
+            "const": "tool",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data"
+        ],
+        "title": "ComparisonToolEvent",
         "type": "object"
       },
       "DatasetReference": {
@@ -1074,13 +1502,25 @@
               "absolute_change",
               "percentage_change",
               "contribution",
-              "current_volume"
+              "current_volume",
+              "end_volume"
             ],
             "title": "Metric Type",
             "type": "string"
           },
           "period": {
             "$ref": "#/components/schemas/Period"
+          },
+          "ranking": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankContext"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           },
           "unit": {
             "enum": [
@@ -1417,6 +1857,39 @@
         "title": "PublicQualitySummary",
         "type": "object"
       },
+      "PythonBaseline": {
+        "additionalProperties": false,
+        "properties": {
+          "inputs": {
+            "items": {
+              "$ref": "#/components/schemas/BaselineInput"
+            },
+            "title": "Inputs",
+            "type": "array"
+          },
+          "monthly_totals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Monthly Totals",
+            "type": "object"
+          },
+          "top_stations": {
+            "items": {
+              "$ref": "#/components/schemas/BaselineStation"
+            },
+            "title": "Top Stations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "monthly_totals",
+          "top_stations",
+          "inputs"
+        ],
+        "title": "PythonBaseline",
+        "type": "object"
+      },
       "QualitySummary": {
         "additionalProperties": false,
         "properties": {
@@ -1582,6 +2055,267 @@
         "title": "QualitySummary",
         "type": "object"
       },
+      "RankContext": {
+        "additionalProperties": false,
+        "description": "Binds a ranked station value to the ranking that produced it.",
+        "properties": {
+          "filter_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "order": {
+            "enum": [
+              "top",
+              "bottom"
+            ],
+            "title": "Order",
+            "type": "string"
+          },
+          "rank": {
+            "minimum": 1,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "ranked_by": {
+            "enum": [
+              "total_starts",
+              "total_ends",
+              "ebike_share_pct",
+              "casual_share_pct",
+              "avg_duration_min"
+            ],
+            "title": "Ranked By",
+            "type": "string"
+          },
+          "station_name": {
+            "minLength": 1,
+            "title": "Station Name",
+            "type": "string"
+          },
+          "tied": {
+            "title": "Tied",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ranked_by",
+          "order",
+          "rank",
+          "tied",
+          "station_name"
+        ],
+        "title": "RankContext",
+        "type": "object"
+      },
+      "RankFilter": {
+        "additionalProperties": false,
+        "description": "Pre-aggregation filter. A typed object because strict model schemas cannot carry free-form maps.",
+        "properties": {
+          "member_casual": {
+            "anyOf": [
+              {
+                "enum": [
+                  "member",
+                  "casual"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Member Casual"
+          },
+          "rideable_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "classic_bike",
+                  "electric_bike"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Rideable Type"
+          }
+        },
+        "title": "RankFilter",
+        "type": "object"
+      },
+      "RankStationsArgs": {
+        "additionalProperties": false,
+        "properties": {
+          "filter_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "limit": {
+            "default": 5,
+            "maximum": 10,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "metric": {
+            "enum": [
+              "total_starts",
+              "total_ends",
+              "ebike_share_pct",
+              "casual_share_pct",
+              "avg_duration_min"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "order": {
+            "default": "top",
+            "enum": [
+              "top",
+              "bottom"
+            ],
+            "title": "Order",
+            "type": "string"
+          },
+          "period": {
+            "pattern": "^\\d{4}-(0[1-9]|1[0-2])$",
+            "title": "Period",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "metric"
+        ],
+        "title": "RankStationsArgs",
+        "type": "object"
+      },
+      "RankStationsResult": {
+        "additionalProperties": false,
+        "properties": {
+          "dataset_version_id": {
+            "title": "Dataset Version Id",
+            "type": "string"
+          },
+          "eligible_station_count": {
+            "minimum": 0,
+            "title": "Eligible Station Count",
+            "type": "integer"
+          },
+          "excluded_low_sample_count": {
+            "minimum": 0,
+            "title": "Excluded Low Sample Count",
+            "type": "integer"
+          },
+          "filter_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankFilter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "leader_station_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Leader Station Id"
+          },
+          "limit": {
+            "maximum": 10,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "metric": {
+            "enum": [
+              "total_starts",
+              "total_ends",
+              "ebike_share_pct",
+              "casual_share_pct",
+              "avg_duration_min"
+            ],
+            "title": "Metric",
+            "type": "string"
+          },
+          "minimum_sample": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimum Sample"
+          },
+          "order": {
+            "enum": [
+              "top",
+              "bottom"
+            ],
+            "title": "Order",
+            "type": "string"
+          },
+          "period": {
+            "title": "Period",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/StationRankRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "tool_name": {
+            "const": "rank_stations",
+            "default": "rank_stations",
+            "title": "Tool Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "period",
+          "dataset_version_id",
+          "metric",
+          "order",
+          "limit",
+          "filter_by",
+          "minimum_sample",
+          "eligible_station_count",
+          "excluded_low_sample_count",
+          "rows",
+          "leader_station_id"
+        ],
+        "title": "RankStationsResult",
+        "type": "object"
+      },
       "ReportHistory": {
         "additionalProperties": false,
         "properties": {
@@ -1649,24 +2383,24 @@
         "additionalProperties": false,
         "properties": {
           "input_tokens": {
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Input Tokens",
             "type": "integer"
           },
           "llm_calls": {
-            "maximum": 6.0,
-            "minimum": 0.0,
+            "maximum": 6,
+            "minimum": 0,
             "title": "Llm Calls",
             "type": "integer"
           },
           "output_tokens": {
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Output Tokens",
             "type": "integer"
           },
           "tool_calls": {
-            "maximum": 10.0,
-            "minimum": 0.0,
+            "maximum": 10,
+            "minimum": 0,
             "title": "Tool Calls",
             "type": "integer"
           }
@@ -1729,6 +2463,62 @@
         "title": "StationChoice",
         "type": "object"
       },
+      "StationRankRow": {
+        "additionalProperties": false,
+        "properties": {
+          "is_tied": {
+            "title": "Is Tied",
+            "type": "boolean"
+          },
+          "metric_value": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Metric Value"
+          },
+          "rank": {
+            "minimum": 1,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "station_id": {
+            "minLength": 1,
+            "title": "Station Id",
+            "type": "string"
+          },
+          "station_name": {
+            "minLength": 1,
+            "title": "Station Name",
+            "type": "string"
+          },
+          "total_ends": {
+            "minimum": 0,
+            "title": "Total Ends",
+            "type": "integer"
+          },
+          "total_starts": {
+            "minimum": 0,
+            "title": "Total Starts",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rank",
+          "station_id",
+          "station_name",
+          "metric_value",
+          "total_starts",
+          "total_ends",
+          "is_tied"
+        ],
+        "title": "StationRankRow",
+        "type": "object"
+      },
       "ToolArguments": {
         "additionalProperties": false,
         "properties": {
@@ -1769,6 +2559,52 @@
             ],
             "default": null,
             "title": "Dimension"
+          },
+          "filter_by": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "metric": {
+            "anyOf": [
+              {
+                "enum": [
+                  "total_starts",
+                  "total_ends",
+                  "ebike_share_pct",
+                  "casual_share_pct",
+                  "avg_duration_min"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric"
+          },
+          "order": {
+            "anyOf": [
+              {
+                "enum": [
+                  "top",
+                  "bottom"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Order"
           },
           "station_id": {
             "anyOf": [
@@ -1856,6 +2692,7 @@
               "station_analysis",
               "station_movers",
               "analyze_station_variance",
+              "rank_stations",
               "make_chart",
               "get_available_periods",
               "retrieve_context",
@@ -2059,6 +2896,42 @@
         "summary": "Agent Run Stream"
       }
     },
+    "/comparisons/stream": {
+      "post": {
+        "operationId": "comparison_stream_comparisons_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ComparisonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Comparison Stream"
+      }
+    },
     "/health": {
       "get": {
         "operationId": "health_health_get",
@@ -2173,6 +3046,44 @@
           }
         },
         "summary": "Periods"
+      }
+    },
+    "/periods/remove": {
+      "post": {
+        "operationId": "remove_period_periods_remove_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FetchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse_AvailablePeriods_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Period"
       }
     },
     "/reports": {

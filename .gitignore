@@ -1,7 +1,6 @@
 .DS_Store
 .env
 .env.*
-!.env.example
 **/.venv/
 **/__pycache__/
 **/*.egg-info/
@@ -33,8 +32,37 @@
 /Project Proposal - Citi Bike Reporting Workflow.docx
 /agentic_executive_mobility_dashboard.md
 
+# Local demo and boundary question catalog
+/docs/question-catalog.md
+
 # Vercel local project metadata and generated service files
 .vercel/
 
 # Python package build output from the Vercel install command
 /backend/build/
+
+# Public repository contains source and tests, not local study/design material.
+*.md
+*.MD
+.env*
+**/.env*
+/evaluation-results/
+/diagrams/
+/docs/*
+*.xlsx
+*.xls
+*.csv
+*.zip
+*.docx
+*.pptx
+*.pdf
+*.pem
+*.key
+
+# Private study tooling and its dependent tests stay local.
+/backend/src/mobility/experiment.py
+/backend/src/mobility/experiment_faults.py
+/backend/src/mobility/evaluation.py
+/backend/tests/test_experiment.py
+/backend/tests/test_ablation.py
+/backend/tests/test_evaluation.py

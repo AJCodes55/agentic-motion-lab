@@ -5,7 +5,7 @@ function failure(status: number, code: string, message: string) {
   return Response.json({ success: false, data: null, error: { code, message } }, { status, headers });
 }
 
-export async function proxy(path: '/ingestions' | '/ingestions/fetch' | '/periods' | '/reports' | '/agent-runs' | '/adhoc' | '/reports/history' | `/reports/history/${string}`, request?: Request) {
+export async function proxy(path: '/ingestions' | '/ingestions/fetch' | '/periods' | '/periods/remove' | '/reports' | '/agent-runs' | '/adhoc' | '/reports/history' | `/reports/history/${string}`, request?: Request) {
   try {
     const limit = path === '/ingestions' ? 50_100_000 : (path === '/agent-runs' || path === '/adhoc') ? 4096 : 1024;
     let body: Uint8Array | undefined;
@@ -24,7 +24,7 @@ export async function proxy(path: '/ingestions' | '/ingestions/fetch' | '/period
       if (reader) {
         let interrupt: () => void = () => {};
         const interrupted = new Promise<never>((_, reject) => {
-          interrupt = () => { void reader.cancel(); reject(new Error('Upload timed out or cancelled')); };
+          interrupt = () => { reject(new Error('Upload timed out or cancelled')); void reader.cancel(); };
         });
         const timer = setTimeout(interrupt, 30_000);
         request.signal.addEventListener('abort', interrupt, { once: true });

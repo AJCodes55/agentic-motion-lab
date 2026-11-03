@@ -55,6 +55,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/comparisons/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Comparison Stream */
+        post: operations["comparison_stream_comparisons_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -117,6 +134,23 @@ export interface paths {
         get: operations["periods_periods_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/periods/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove Period */
+        post: operations["remove_period_periods_remove_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -241,8 +275,11 @@ export interface components {
         };
         /** AgentRun */
         AgentRun: {
-            /** Candidate Id */
-            candidate_id?: string | null;
+            /**
+             * Candidate Id
+             * @default null
+             */
+            candidate_id: string | null;
             counters: components["schemas"]["RunCounters"];
             /** Datasets */
             datasets: components["schemas"]["DatasetReference"][];
@@ -269,8 +306,11 @@ export interface components {
             status: "complete" | "partial" | "refused";
             /** Trace */
             trace: components["schemas"]["ToolResult"][];
-            /** Validation Reason */
-            validation_reason?: string | null;
+            /**
+             * Validation Reason
+             * @default null
+             */
+            validation_reason: string | null;
             /** Warning */
             warning: string | null;
         };
@@ -369,6 +409,25 @@ export interface components {
             /** Periods */
             periods: components["schemas"]["DatasetReference"][];
         };
+        /** BaselineInput */
+        BaselineInput: {
+            dataset: components["schemas"]["DatasetReference"];
+            /** Quality */
+            quality: {
+                [key: string]: unknown;
+            };
+            /** Sources */
+            sources: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** BaselineReadyTiming */
+        BaselineReadyTiming: {
+            /** Python Calculation */
+            python_calculation: number;
+            /** Shared Preparation */
+            shared_preparation: number;
+        };
         /** BaselineReport */
         BaselineReport: {
             /** Datasets */
@@ -386,6 +445,15 @@ export interface components {
             period: components["schemas"]["Period"];
             /** Report Id */
             report_id: string;
+        };
+        /** BaselineStation */
+        BaselineStation: {
+            /** Ride Count */
+            ride_count: number;
+            /** Station Id */
+            station_id: string;
+            /** Station Name */
+            station_name: string;
         };
         /** CategoryMapping */
         CategoryMapping: {
@@ -432,8 +500,10 @@ export interface components {
              * Metric Type
              * @enum {string}
              */
-            metric_type: "trip_count" | "share" | "average_duration_minutes" | "absolute_change" | "percentage_change" | "contribution" | "current_volume";
+            metric_type: "trip_count" | "share" | "average_duration_minutes" | "absolute_change" | "percentage_change" | "contribution" | "current_volume" | "end_volume";
             period: components["schemas"]["Period"];
+            /** @default null */
+            ranking: components["schemas"]["RankContext"] | null;
             /** Run Id */
             run_id: string;
             /** Tool Call Id */
@@ -448,6 +518,128 @@ export interface components {
              * @enum {string}
              */
             unit: "trips" | "percent" | "minutes" | "percentage_points";
+        };
+        /** ComparisonBaselineEvent */
+        ComparisonBaselineEvent: {
+            data: components["schemas"]["PythonBaseline"];
+            /** Datasets */
+            datasets: components["schemas"]["DatasetReference"][];
+            /** Report Id */
+            report_id: string;
+            timing_seconds: components["schemas"]["BaselineReadyTiming"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "baseline";
+        };
+        /** ComparisonCandidateEvent */
+        ComparisonCandidateEvent: {
+            /** Candidate Id */
+            candidate_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "candidate";
+        };
+        /** ComparisonErrorEvent */
+        ComparisonErrorEvent: {
+            /** Message */
+            message: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "error";
+        };
+        /** ComparisonRequest */
+        ComparisonRequest: {
+            period: components["schemas"]["Period"];
+        };
+        /** ComparisonResult */
+        ComparisonResult: {
+            agent: components["schemas"]["AgentRun"];
+            baseline: components["schemas"]["PythonBaseline"];
+            /** Datasets */
+            datasets: components["schemas"]["DatasetReference"][];
+            /**
+             * Dollar Cost
+             * @default null
+             */
+            dollar_cost: null;
+            period: components["schemas"]["Period"];
+            /** Report Id */
+            report_id: string;
+            /** Rows */
+            rows: components["schemas"]["ComparisonRow"][];
+            timing_seconds: components["schemas"]["ComparisonTiming"];
+        };
+        /** ComparisonResultEvent */
+        ComparisonResultEvent: {
+            data: components["schemas"]["ComparisonResult"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "result";
+        };
+        /** ComparisonRow */
+        ComparisonRow: {
+            /** Agent Total */
+            agent_total: number | null;
+            /** Difference */
+            difference: number | null;
+            /** Month */
+            month: string;
+            /** Python Total */
+            python_total: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "match" | "mismatch" | "unavailable";
+        };
+        /** ComparisonStageEvent */
+        ComparisonStageEvent: {
+            /**
+             * Name
+             * @enum {string}
+             */
+            name: "Data Ingest" | "Agent Planning" | "Tool Execution" | "Final Report Generation";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "complete" | "failed" | "skipped";
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "stage";
+        };
+        /** ComparisonStreamEvent */
+        ComparisonStreamEvent: {
+            /** Event */
+            event: components["schemas"]["ComparisonBaselineEvent"] | components["schemas"]["ComparisonResultEvent"] | components["schemas"]["ComparisonErrorEvent"] | components["schemas"]["ComparisonStageEvent"] | components["schemas"]["ComparisonToolEvent"] | components["schemas"]["ComparisonCandidateEvent"];
+        };
+        /** ComparisonTiming */
+        ComparisonTiming: {
+            /** Agent Workflow */
+            agent_workflow: number;
+            /** Python Calculation */
+            python_calculation: number;
+            /** Shared Preparation */
+            shared_preparation: number;
+        };
+        /** ComparisonToolEvent */
+        ComparisonToolEvent: {
+            data: components["schemas"]["ToolResult"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "tool";
         };
         /** DatasetReference */
         DatasetReference: {
@@ -486,8 +678,10 @@ export interface components {
              * Metric Type
              * @enum {string}
              */
-            metric_type: "trip_count" | "share" | "average_duration_minutes" | "absolute_change" | "percentage_change" | "contribution" | "current_volume";
+            metric_type: "trip_count" | "share" | "average_duration_minutes" | "absolute_change" | "percentage_change" | "contribution" | "current_volume" | "end_volume";
             period: components["schemas"]["Period"];
+            /** @default null */
+            ranking: components["schemas"]["RankContext"] | null;
             /**
              * Unit
              * @enum {string}
@@ -632,6 +826,17 @@ export interface components {
             /** Valid Rows */
             valid_rows: number;
         };
+        /** PythonBaseline */
+        PythonBaseline: {
+            /** Inputs */
+            inputs: components["schemas"]["BaselineInput"][];
+            /** Monthly Totals */
+            monthly_totals: {
+                [key: string]: number;
+            };
+            /** Top Stations */
+            top_stations: components["schemas"]["BaselineStation"][];
+        };
         /** QualitySummary */
         QualitySummary: {
             /**
@@ -727,6 +932,105 @@ export interface components {
             /** Valid Rows */
             valid_rows: number;
         };
+        /**
+         * RankContext
+         * @description Binds a ranked station value to the ranking that produced it.
+         */
+        RankContext: {
+            /** @default null */
+            filter_by: components["schemas"]["RankFilter"] | null;
+            /**
+             * Order
+             * @enum {string}
+             */
+            order: "top" | "bottom";
+            /** Rank */
+            rank: number;
+            /**
+             * Ranked By
+             * @enum {string}
+             */
+            ranked_by: "total_starts" | "total_ends" | "ebike_share_pct" | "casual_share_pct" | "avg_duration_min";
+            /** Station Name */
+            station_name: string;
+            /** Tied */
+            tied: boolean;
+        };
+        /**
+         * RankFilter
+         * @description Pre-aggregation filter. A typed object because strict model schemas cannot carry free-form maps.
+         */
+        RankFilter: {
+            /**
+             * Member Casual
+             * @default null
+             */
+            member_casual: ("member" | "casual") | null;
+            /**
+             * Rideable Type
+             * @default null
+             */
+            rideable_type: ("classic_bike" | "electric_bike") | null;
+        };
+        /** RankStationsArgs */
+        RankStationsArgs: {
+            /** @default null */
+            filter_by: components["schemas"]["RankFilter"] | null;
+            /**
+             * Limit
+             * @default 5
+             */
+            limit: number;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "total_starts" | "total_ends" | "ebike_share_pct" | "casual_share_pct" | "avg_duration_min";
+            /**
+             * Order
+             * @default top
+             * @enum {string}
+             */
+            order: "top" | "bottom";
+            /** Period */
+            period: string;
+        };
+        /** RankStationsResult */
+        RankStationsResult: {
+            /** Dataset Version Id */
+            dataset_version_id: string;
+            /** Eligible Station Count */
+            eligible_station_count: number;
+            /** Excluded Low Sample Count */
+            excluded_low_sample_count: number;
+            filter_by: components["schemas"]["RankFilter"] | null;
+            /** Leader Station Id */
+            leader_station_id: string | null;
+            /** Limit */
+            limit: number;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "total_starts" | "total_ends" | "ebike_share_pct" | "casual_share_pct" | "avg_duration_min";
+            /** Minimum Sample */
+            minimum_sample: number | null;
+            /**
+             * Order
+             * @enum {string}
+             */
+            order: "top" | "bottom";
+            /** Period */
+            period: string;
+            /** Rows */
+            rows: components["schemas"]["StationRankRow"][];
+            /**
+             * Tool Name
+             * @default rank_stations
+             * @constant
+             */
+            tool_name: "rank_stations";
+        };
         /** ReportHistory */
         ReportHistory: {
             /** Reports */
@@ -781,6 +1085,23 @@ export interface components {
             /** Station Name */
             station_name: string;
         };
+        /** StationRankRow */
+        StationRankRow: {
+            /** Is Tied */
+            is_tied: boolean;
+            /** Metric Value */
+            metric_value: number;
+            /** Rank */
+            rank: number;
+            /** Station Id */
+            station_id: string;
+            /** Station Name */
+            station_name: string;
+            /** Total Ends */
+            total_ends: number;
+            /** Total Starts */
+            total_starts: number;
+        };
         /** ToolArguments */
         ToolArguments: {
             /** @default null */
@@ -792,6 +1113,18 @@ export interface components {
              * @default null
              */
             dimension: ("rideable_type" | "member_casual") | null;
+            /** @default null */
+            filter_by: components["schemas"]["RankFilter"] | null;
+            /**
+             * Metric
+             * @default null
+             */
+            metric: ("total_starts" | "total_ends" | "ebike_share_pct" | "casual_share_pct" | "avg_duration_min") | null;
+            /**
+             * Order
+             * @default null
+             */
+            order: ("top" | "bottom") | null;
             /**
              * Station Id
              * @default null
@@ -826,7 +1159,7 @@ export interface components {
              * Tool Name
              * @enum {string}
              */
-            tool_name: "kpi_summary" | "compare_periods" | "daily_trend" | "station_analysis" | "station_movers" | "analyze_station_variance" | "make_chart" | "get_available_periods" | "retrieve_context" | "generate_standard_dashboard" | "validate_and_load_file";
+            tool_name: "kpi_summary" | "compare_periods" | "daily_trend" | "station_analysis" | "station_movers" | "analyze_station_variance" | "rank_stations" | "make_chart" | "get_available_periods" | "retrieve_context" | "generate_standard_dashboard" | "validate_and_load_file";
             /**
              * Validation Reason
              * @default null
@@ -956,6 +1289,39 @@ export interface operations {
             };
         };
     };
+    comparison_stream_comparisons_stream_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComparisonRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_health_get: {
         parameters: {
             query?: never;
@@ -1051,6 +1417,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiResponse_AvailablePeriods_"];
+                };
+            };
+        };
+    };
+    remove_period_periods_remove_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FetchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiResponse_AvailablePeriods_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

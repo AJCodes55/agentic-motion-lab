@@ -4,11 +4,15 @@ from typing import Literal
 
 from pydantic import Field
 
-from mobility.contracts import Contract, DatasetReference, Dimension, Period
+from mobility.contracts import (Contract, DatasetReference, Dimension, Period, RankFilter, RankMetric, RankOrder,
+                                RankStationsArgs)
 from mobility.storage import DatasetStore
 
 Category = Literal['Member', 'Casual', 'Unknown', 'Classic', 'E-bike']
 CATEGORIES = {'member_casual': ('Member', 'Casual', 'Unknown'), 'rideable_type': ('Classic', 'E-bike', 'Unknown')}
+MIN_RATE_SAMPLE = 100
+RATE_METRICS = frozenset({'ebike_share_pct', 'casual_share_pct', 'avg_duration_min'})
+_FILTER_LABELS = {'member': 'Member', 'casual': 'Casual', 'classic_bike': 'Classic', 'electric_bike': 'E-bike'}
 
 
 class CategoryMetric(Contract):
@@ -131,6 +135,31 @@ class StationInput(ComparisonInput):
 
 class RankingInput(DatasetInput):
     top_n: int = Field(default=5, ge=1, le=100)
+
+
+class StationRankRow(Contract):
+    rank: int = Field(ge=1)
+    station_id: str = Field(min_length=1)
+    station_name: str = Field(min_length=1)
+    metric_value: int | float = Field(allow_inf_nan=False)
+    total_starts: int = Field(ge=0)
+    total_ends: int = Field(ge=0)
+    is_tied: bool
+
+
+class RankStationsResult(Contract):
+    tool_name: Literal['rank_stations'] = 'rank_stations'
+    period: str
+    dataset_version_id: str
+    metric: RankMetric
+    order: RankOrder
+    limit: int = Field(ge=1, le=10)
+    filter_by: RankFilter | None
+    minimum_sample: int | None
+    eligible_station_count: int = Field(ge=0)
+    excluded_low_sample_count: int = Field(ge=0)
+    rows: tuple[StationRankRow, ...]
+    leader_station_id: str | None
 
 
 def prior_period(period: Period) -> Period:
@@ -259,6 +288,58 @@ class AnalyticsService:
             'status': 'standalone', 'eligibility_reason': 'comparison_unavailable'})
             for key, count in sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:args.top_n])
         return StationRanking(dataset=reference, stations=stations)
+
+    def rank_stations(self, reference: DatasetReference, args: RankStationsArgs) -> RankStationsResult:
+        """Rank stations within one pinned month. Values stay unrounded; display rounds them (D12)."""
+        reference = DatasetInput(dataset=reference).dataset
+        args = RankStationsArgs.model_validate(args)
+        if args.reporting_period != reference.period:
+            raise ValueError('Ranking period must match the pinned dataset')
+        frame = self.store.read_frame(reference)
+        for column, wanted in (args.filter_by.model_dump().items() if args.filter_by else ()):
+            if wanted is not None:
+                frame = frame[frame[column] == _FILTER_LABELS[wanted]]
+        starts, start_names = self._stations(frame)
+        ends: dict[str, int] = {}
+        end_names: dict[str, str] = {}
+        if 'end_station_id' in frame:
+            ended = frame[frame['end_station_id'].str.strip() != '']
+            ends = {str(key): int(value) for key, value in ended.groupby('end_station_id').size().items()}
+            for station, name in zip(ended['end_station_id'], ended['end_station_name']):
+                if str(name).strip():
+                    end_names.setdefault(str(station), str(name))
+        if args.metric == 'total_ends':
+            values: dict[str, int | float] = dict(ends)
+        elif args.metric == 'total_starts':
+            values = dict(starts)
+        else:
+            grouped = frame.groupby('start_station_id')
+            if args.metric == 'avg_duration_min':
+                series = grouped['duration_seconds'].mean() / 60
+            else:
+                column, label = (('rideable_type', 'E-bike') if args.metric == 'ebike_share_pct'
+                                 else ('member_casual', 'Casual'))
+                series = grouped[column].apply(lambda items: float((items == label).sum()) / len(items) * 100)
+            values = {str(key): float(value) for key, value in series.items()}
+        excluded = 0
+        if args.metric in RATE_METRICS:
+            eligible = {key: value for key, value in values.items() if starts.get(key, 0) >= MIN_RATE_SAMPLE}
+            excluded = len(values) - len(eligible)
+            values = eligible
+        sign = -1 if args.order == 'top' else 1
+        ordered = sorted(values, key=lambda key: (sign * values[key], -starts.get(key, 0), key))
+        occurrences: dict[int | float, int] = {}
+        for value in values.values():
+            occurrences[value] = occurrences.get(value, 0) + 1
+        rows = tuple(StationRankRow(rank=index + 1, station_id=key,
+            station_name=start_names.get(key, end_names.get(key, key)), metric_value=values[key],
+            total_starts=starts.get(key, 0), total_ends=ends.get(key, 0), is_tied=occurrences[values[key]] > 1)
+            for index, key in enumerate(ordered[:args.limit]))
+        return RankStationsResult(period=args.period, dataset_version_id=reference.version_id, metric=args.metric,
+            order=args.order, limit=args.limit, filter_by=args.filter_by,
+            minimum_sample=MIN_RATE_SAMPLE if args.metric in RATE_METRICS else None,
+            eligible_station_count=len(values), excluded_low_sample_count=excluded, rows=rows,
+            leader_station_id=rows[0].station_id if rows else None)
 
     def station_movers(self, current: DatasetReference, prior: DatasetReference) -> StationMovers:
         args = ComparisonInput(current_dataset=current, prior_dataset=prior)

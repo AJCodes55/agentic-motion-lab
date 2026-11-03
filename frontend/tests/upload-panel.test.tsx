@@ -12,7 +12,7 @@ test('uploads a file and shows real quality and available version',async()=>{
  fireEvent.click(screen.getByRole('button',{name:'Upload selected files'}));
  expect(await screen.findByText('Activated')).toBeInTheDocument();
  expect(screen.getByText('Valid trips: 9')).toBeInTheDocument();
- expect(await screen.findByText(/2026-02 · version v1/)).toBeInTheDocument();
+ expect(await screen.findByText('February 2026')).toBeInTheDocument();
 });
 test('rejected correction preserves previous version and exposes candidate rows',async()=>{
  mocks({results:[{period:dataset.period,status:'rejected',dataset:null,quality:{...quality,valid_rows:0,candidate_rows:9,rejection_reason:'Wrong month',stopped_stage:'month'},message:'Rejected'}]});
@@ -20,7 +20,7 @@ test('rejected correction preserves previous version and exposes candidate rows'
  fireEvent.click(screen.getByRole('button',{name:'Fetch public Citi Bike data'}));
  expect(await screen.findByText('Previous active version, if any, is preserved.')).toBeInTheDocument();
  expect(screen.getByText('Candidate rows, not accepted trips: 9')).toBeInTheDocument();
- expect(await screen.findByText(/2026-02 · version v1/)).toBeInTheDocument();
+ expect(await screen.findByText('February 2026')).toBeInTheDocument();
 });
 test('requires explicit month for fetch and validates file limits',async()=>{
  mocks({results:[]});render(<UploadPanel period="" onBusy={()=>{}}/>);
@@ -28,7 +28,7 @@ test('requires explicit month for fetch and validates file limits',async()=>{
  const file=new File(['x'],'big.csv');Object.defineProperty(file,'size',{value:25_000_001});
  fireEvent.change(screen.getByLabelText('Choose data files'),{target:{files:[file]}});
  expect(screen.getByRole('alert')).toHaveTextContent('Limit: 25 MB per file and 50 MB total.');
- await screen.findByText(/2026-02 · version v1/);
+ await screen.findByText('February 2026');
 });
 test('shows service errors and allows retry',async()=>{
  vi.stubGlobal('fetch',vi.fn().mockRejectedValue(new Error('offline')));
@@ -37,7 +37,7 @@ test('shows service errors and allows retry',async()=>{
  fireEvent.click(screen.getByRole('button',{name:'Fetch public Citi Bike data'}));
  expect(await screen.findByRole('alert')).toHaveTextContent('offline');
  mocks({results:[]});fireEvent.click(screen.getByRole('button',{name:'Refresh available months'}));
- expect(await screen.findByText(/2026-02 · version v1/)).toBeInTheDocument();
+ expect(await screen.findByText('February 2026')).toBeInTheDocument();
 });
 test('renders partial success and source coverage without private mapping dictionaries',async()=>{
  mocks({results:[{period:null,status:'rejected',dataset:null,quality:{...quality,valid_rows:0,candidate_rows:9},message:'Bad file'},{period:dataset.period,status:'accepted',dataset,quality,message:'Good file'}]});
@@ -61,6 +61,20 @@ test('distinguishes loading months from an empty store and offers refresh',async
  resolve({ok:true,json:async()=>({success:true,data:{periods:[]}})});
  expect(await screen.findByText('No accepted datasets available.')).toBeInTheDocument();
  expect(screen.getByRole('button',{name:'Refresh available months'})).toBeEnabled();
+});
+test('removes a month after confirmation and keeps it when cancelled',async()=>{
+ const fetchMock=vi.fn().mockImplementation(async(url:string)=>({ok:true,json:async()=>({success:true,data:String(url).includes('remove')?{periods:[]}:{periods:[dataset]}})}));
+ vi.stubGlobal('fetch',fetchMock);
+ vi.stubGlobal('confirm',()=>false);
+ render(<UploadPanel period="2026-02" onBusy={()=>{}}/>);
+ const remove = await screen.findByRole('button',{name:'Remove February 2026'});
+ expect(remove).toHaveTextContent('');
+ expect(remove.querySelector('svg')).toHaveAttribute('aria-hidden','true');
+ fireEvent.click(remove);
+ expect(fetchMock.mock.calls.some(call=>String(call[0]).includes('remove'))).toBe(false);
+ vi.stubGlobal('confirm',()=>true);
+ fireEvent.click(screen.getByRole('button',{name:'Remove February 2026'}));
+ expect(await screen.findByText('No accepted datasets available.')).toBeInTheDocument();
 });
 test('explains retained Unknown categories separately from row exclusions',async()=>{
  mocks({results:[{period:dataset.period,status:'accepted',dataset,quality:{...quality,unknown_member_rows:2,unknown_bike_rows:1},message:'Activated'}]});

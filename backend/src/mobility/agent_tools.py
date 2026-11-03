@@ -2,10 +2,21 @@
 from typing import Any
 
 from mobility.analytics import AnalyticsService
-from mobility.contracts import DatasetReference, EvidenceValue, Period, ToolArguments, ToolResult
+from mobility.contracts import (DatasetReference, EvidenceValue, Period, RankContext, RankStationsArgs, ToolArguments,
+                                ToolResult)
 from mobility.storage import DatasetStore
+from mobility.tracing import TraceRecorder
 
 
+# Ranked metric -> (evidence metric_type, unit, dimension, category).
+RANKED_VALUE = {
+    'total_starts': ('current_volume', 'trips', None, None),
+    'total_ends': ('end_volume', 'trips', None, None),
+    'ebike_share_pct': ('share', 'percent', 'rideable_type', 'E-bike'),
+    'casual_share_pct': ('share', 'percent', 'member_casual', 'Casual'),
+    'avg_duration_min': ('average_duration_minutes', 'minutes', None, None),
+}
+_OPTIONAL = frozenset({'top_n', 'filter_by'})
 _FIELDS = {
     'get_available_periods': frozenset(),
     'retrieve_context': frozenset(),
@@ -14,18 +25,20 @@ _FIELDS = {
     'station_analysis': frozenset({'current_period', 'top_n'}),
     'station_movers': frozenset({'current_period', 'comparison_period'}),
     'analyze_station_variance': frozenset({'current_period', 'comparison_period', 'station_id'}),
+    'rank_stations': frozenset({'current_period', 'top_n', 'metric', 'order', 'filter_by'}),
 }
 _CONTEXT = {
-    'scope': 'Supported: monthly trips, rider/fleet shares, average duration, station starts and adjacent-month comparisons. Forecasts, causal claims and non-adjacent comparisons are unsupported.',
+    'scope': 'Supported: monthly trips, rider/fleet shares, average duration, station starts, station rankings and adjacent-month comparisons. Forecasts, causal claims and non-adjacent comparisons are unsupported.',
     'definitions': 'A trip is a cleaned start in the reporting month. Shares include Unknown (unclassified). Station volume is starts. Percent changes require at least 100 prior starts.',
     'templates': 'Claims must use exact tool evidence. Python renders validated values and fixed transitions; do not generate factual prose.',
 }
 
 
 class AgentTools:
-    def __init__(self, store: DatasetStore, refs: tuple[DatasetReference, ...], run_id: str) -> None:
+    def __init__(self, store: DatasetStore, refs: tuple[DatasetReference, ...], run_id: str, trace: TraceRecorder | None = None) -> None:
         if not refs or len(refs) > 2 or len({ref.period for ref in refs}) != len(refs):
             raise ValueError('One or two unique pinned datasets are required')
+        self.trace = trace or TraceRecorder()
         self.store = store
         self.refs = tuple(DatasetReference.model_validate(ref) for ref in refs)
         self.run_id = run_id
@@ -64,15 +77,32 @@ class AgentTools:
                                'percent', comparison=comparison, reason=station.eligibility_reason)))
         return values
 
+    @staticmethod
+    def _rank_values(ref, result) -> list[EvidenceValue]:
+        metric_type, unit, dimension, category = RANKED_VALUE[result.metric]
+        values = []
+        for row in result.rows:
+            context = RankContext(ranked_by=result.metric, order=result.order, rank=row.rank, tied=row.is_tied,
+                                  station_name=row.station_name, filter_by=result.filter_by)
+            values.append(EvidenceValue(entity_id=row.station_id, metric_type=metric_type, period=ref.period,
+                dimension=dimension, category=category, unit=unit, exact_tool_value=row.metric_value,
+                eligible=True, ranking=context))
+            if result.metric != 'total_starts':
+                values.append(EvidenceValue(entity_id=row.station_id, metric_type='current_volume', period=ref.period,
+                    unit='trips', exact_tool_value=row.total_starts, eligible=True, ranking=context))
+        return values
+
     def execute(self, name: str, args: ToolArguments, call_id: str) -> tuple[ToolResult, dict[str, Any]]:
         args = ToolArguments.model_validate(args)
         datasets = (self.refs[0],)
+        self.trace.record('execution', name, 'Executing the selected tool against pinned data.',
+                          status='started', source='tool', inputs=args.model_dump(mode='json'))
         try:
             if name not in _FIELDS:
                 raise ValueError('Tool is outside the approved Phase 4 whitelist')
             supplied = {key for key, value in args.model_dump().items() if value is not None}
             allowed = _FIELDS[name]
-            required = allowed - {'top_n'}
+            required = allowed - _OPTIONAL
             if not required <= supplied or not supplied <= allowed:
                 raise ValueError('Tool arguments do not match the approved schema')
             if name == 'get_available_periods':
@@ -104,6 +134,11 @@ class AgentTools:
                 elif name == 'station_analysis':
                     result = self.analytics.station_analysis(current, args.top_n or 5)
                     values = [value for station in result.stations for value in self._station_values(current, station)]
+                elif name == 'rank_stations':
+                    result = self.analytics.rank_stations(current, RankStationsArgs(
+                        period=f'{current.period.year:04d}-{current.period.month:02d}', metric=args.metric,
+                        order=args.order, limit=args.top_n or 5, filter_by=args.filter_by))
+                    values = self._rank_values(current, result)
                 elif name == 'station_movers':
                     result = self.analytics.station_movers(current, prior)
                     stations = {station.station_id: station for station in (*result.top_5_increases, *result.top_5_decreases)}
@@ -129,9 +164,13 @@ class AgentTools:
                 payload = result.model_dump(mode='json')
             tool_result = ToolResult(run_id=self.run_id, tool_call_id=call_id, stage='execution',
                 tool_name=name, status='success', arguments=args, datasets=datasets, values=tuple(values))
+            self.trace.record('execution', name, 'Tool returned its result.', source='tool',
+                              inputs=args.model_dump(mode='json'), output=payload)
             return tool_result, payload
         except (ValueError, TypeError, KeyError, OSError) as exc:
             reason = 'Tool arguments or pinned data are invalid.' if isinstance(exc, (ValueError, TypeError, KeyError)) else 'Tool execution failed.'
+            self.trace.record('execution', name, reason, status='failed', source='tool',
+                              inputs=args.model_dump(mode='json'), output={'validation_reason': reason})
             return ToolResult(run_id=self.run_id, tool_call_id=call_id, stage='execution',
                 tool_name=name if name in ToolResult.model_fields['tool_name'].annotation.__args__ else 'retrieve_context',
                 status='failed', arguments=args, datasets=datasets, values=(), validation_reason=reason), {}

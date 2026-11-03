@@ -178,6 +178,16 @@ class DatasetStore:
             raise ValueError('Raw Lake checksum mismatch')
         return directory
 
+    def retire(self, period: Period) -> None:
+        """Remove the month from new requests. Version files stay so saved reports still open."""
+        # shortcut: files stay on disk, delete them only if a later cleanup job is requested
+        period = Period.model_validate(period)
+        with self._connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            removed = db.execute('DELETE FROM active WHERE year=? AND month=?', (period.year, period.month)).rowcount
+            if removed != 1:
+                raise KeyError(f'No active dataset for {period.year:04d}-{period.month:02d}')
+
     def activate(self, reference: DatasetReference) -> None:
         metadata = self.read_metadata(reference)
         persisted = self.read_kpis(reference)

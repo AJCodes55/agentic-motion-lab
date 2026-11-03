@@ -84,9 +84,49 @@ class PublicQualitySummary(QualitySummary):
         return cls(**values)
 
 
-Metric = Literal['trip_count', 'share', 'average_duration_minutes', 'absolute_change', 'percentage_change', 'contribution', 'current_volume']
+Metric = Literal['trip_count', 'share', 'average_duration_minutes', 'absolute_change', 'percentage_change', 'contribution', 'current_volume', 'end_volume']
 Dimension = Literal['rideable_type', 'member_casual']
 ExactValue = int | float | None
+RankMetric = Literal['total_starts', 'total_ends', 'ebike_share_pct', 'casual_share_pct', 'avg_duration_min']
+RankOrder = Literal['top', 'bottom']
+
+
+class RankFilter(Contract):
+    """Pre-aggregation filter. A typed object because strict model schemas cannot carry free-form maps."""
+    member_casual: Literal['member', 'casual'] | None = None
+    rideable_type: Literal['classic_bike', 'electric_bike'] | None = None
+
+
+class RankStationsArgs(Contract):
+    period: str = Field(pattern=r'^\d{4}-(0[1-9]|1[0-2])$')
+    metric: RankMetric
+    order: RankOrder = 'top'
+    limit: int = Field(default=5, ge=1, le=10)
+    filter_by: RankFilter | None = None
+
+    @model_validator(mode='after')
+    def compatible_filter(self) -> Self:
+        if self.filter_by is not None:
+            if self.metric == 'ebike_share_pct' and self.filter_by.rideable_type is not None:
+                raise ValueError('E-bike share cannot be filtered by bike type')
+            if self.metric == 'casual_share_pct' and self.filter_by.member_casual is not None:
+                raise ValueError('Casual share cannot be filtered by rider type')
+        return self
+
+    @property
+    def reporting_period(self) -> Period:
+        year, month = self.period.split('-')
+        return Period(year=int(year), month=int(month))
+
+
+class RankContext(Contract):
+    """Binds a ranked station value to the ranking that produced it."""
+    ranked_by: RankMetric
+    order: RankOrder
+    rank: int = Field(ge=1)
+    tied: bool
+    station_name: str = Field(min_length=1)
+    filter_by: RankFilter | None = None
 
 
 class EvidenceValue(Contract):
@@ -100,6 +140,7 @@ class EvidenceValue(Contract):
     exact_tool_value: ExactValue = Field(allow_inf_nan=False)
     eligible: bool
     eligibility_reason: str | None = Field(default=None, max_length=256)
+    ranking: RankContext | None = None
 
     @model_validator(mode='after')
     def validate_eligibility(self) -> Self:
@@ -116,13 +157,16 @@ class ToolArguments(Contract):
     station_id: str | None = Field(default=None, min_length=1)
     top_n: int | None = Field(default=None, ge=1, le=100)
     dimension: Dimension | None = None
+    metric: RankMetric | None = None
+    order: RankOrder | None = None
+    filter_by: RankFilter | None = None
 
 
 class ToolResult(Contract):
     run_id: str = Field(min_length=1, max_length=128)
     tool_call_id: str = Field(min_length=1, max_length=128)
     stage: Literal['baseline', 'routing', 'planning', 'execution', 'validation', 'rendering']
-    tool_name: Literal['kpi_summary', 'compare_periods', 'daily_trend', 'station_analysis', 'station_movers', 'analyze_station_variance', 'make_chart', 'get_available_periods', 'retrieve_context', 'generate_standard_dashboard', 'validate_and_load_file']
+    tool_name: Literal['kpi_summary', 'compare_periods', 'daily_trend', 'station_analysis', 'station_movers', 'analyze_station_variance', 'rank_stations', 'make_chart', 'get_available_periods', 'retrieve_context', 'generate_standard_dashboard', 'validate_and_load_file']
     status: Literal['success', 'failed']
     arguments: ToolArguments
     datasets: tuple[DatasetReference, ...] = Field(min_length=1, max_length=2)
