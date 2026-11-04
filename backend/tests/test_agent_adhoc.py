@@ -7,7 +7,7 @@ from mobility.storage import DatasetStore
 from test_agent import FakeModel, version
 
 
-@pytest.mark.parametrize('wording', ['ride share for station', 'trip counts at', 'trip count at', 'trip starts at'])
+@pytest.mark.parametrize('wording', ['ride share for station', 'trip counts at', 'trip count at', 'trip starts at', 'trips started at'])
 def test_explicit_station_count_comparison_does_not_depend_on_model(tmp_path, wording):
     store = DatasetStore(tmp_path)
     version(store, 6, {'HB107': 20})
@@ -35,6 +35,48 @@ def test_catalog_station_comparison_runs_without_model_classification(tmp_path):
     assert result.status == 'complete', result.warning
     assert result.counters.llm_calls == 0
     assert result.warning is None
+
+
+def test_trips_started_comparison_does_not_invent_absent_station_counts(tmp_path):
+    store = DatasetStore(tmp_path)
+    version(store, 4, {'OTHER': 20})
+    version(store, 5, {'OTHER': 8})
+    result = AgentService(store, FakeModel([])).run(Period(year=2026, month=5),
+        'Compare trips started at HB107 in May 2026 with April 2026')
+    assert result.status == 'refused'
+    assert 'No matching start station' in result.warning
+    assert result.counters.llm_calls == 0
+    assert not result.trace and not result.report_html
+
+
+def test_demo_trips_started_comparison_runs_without_model_classification(tmp_path):
+    store = DatasetStore(tmp_path)
+    version(store, 4, {'HB107': 20})
+    version(store, 5, {'HB107': 8})
+    result = AgentService(store, FakeModel([])).run(Period(year=2026, month=5),
+        'Compare trips started at HB107 in May 2026 with April 2026')
+    assert result.status == 'complete', result.warning
+    assert result.counters.llm_calls == 0
+    assert all(stage.status == 'complete' for stage in result.stages)
+    comparison = next(item for item in result.trace if item.tool_name == 'analyze_station_variance')
+    assert comparison.arguments.station_id == 'HB107'
+    assert comparison.arguments.current_period == Period(year=2026, month=5)
+    assert comparison.arguments.comparison_period == Period(year=2026, month=4)
+    counts = {value.period.month: value.exact_tool_value for value in comparison.values
+              if value.entity_id == 'HB107' and value.metric_type == 'current_volume'
+              and value.category is None}
+    assert counts == {4: 20, 5: 8}
+
+
+def test_trips_started_comparison_rejects_wrong_selected_month_without_model(tmp_path):
+    store = DatasetStore(tmp_path)
+    version(store, 4, {'HB107': 20})
+    version(store, 5, {'HB107': 8})
+    result = AgentService(store, FakeModel([])).run(Period(year=2026, month=4),
+        'Compare trips started at HB107 in May 2026 with April 2026')
+    assert result.status == 'refused'
+    assert result.counters.llm_calls == 0
+    assert not result.trace
 
 
 @pytest.mark.parametrize('months', ['May and July', 'June 2025 and July 2026', 'June and August'])

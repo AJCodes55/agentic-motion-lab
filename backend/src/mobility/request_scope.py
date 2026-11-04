@@ -60,7 +60,7 @@ def _station_count_comparison(command: str, year: int, month: int) -> dict | Non
     # shortcut: explicit ID/count phrases only; extend when another real wording needs offline routing.
     if re.search(r'\b(?:report|dashboard|percent\w*|fraction|proportion|ratio|member|casual|classic|electric|e-bike|fleet|rider)\b|%', command, re.I):
         return None
-    match = re.search(r'\bcompare\s+(?:the\s+)?(ride share for station|trip (?:counts?|starts) (?:at|for station))'
+    match = re.search(r'\bcompare\s+(?:the\s+)?(ride share for station|(?:trip (?:counts?|starts)|trips started) (?:at|for station))'
                       r'\s+([^\s,?!]+)(?=$|[,?!]|\s+(?:for|in|between|from|with|during|over)\b)', command, re.I)
     if match is None or not re.search(r'\d', match[2]):
         return None

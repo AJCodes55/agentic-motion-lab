@@ -66,3 +66,10 @@
 /backend/tests/test_experiment.py
 /backend/tests/test_ablation.py
 /backend/tests/test_evaluation.py
+
+# Expanded study runners and their tests depend on private study tooling.
+/backend/src/mobility/evaluation_*.py
+/backend/tests/test_evaluation_*.py
+
+# The public project guide is the only Markdown publication exception.
+!/README.md
