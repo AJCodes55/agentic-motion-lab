@@ -1,44 +1,54 @@
 # Agentic Motion Lab
 
-A Citi Bike reporting application for exploring monthly Jersey City trip data. A Next.js interface connects to a FastAPI backend for data ingestion, deterministic analytics, and bounded agent workflows.
+A Citi Bike analytics demo for Jersey City. Upload or retrieve monthly trip data, generate verified reports, and use an agent to investigate monthly and station-level trends. The frontend uses Next.js; the backend uses FastAPI and Python for the calculations.
 
-## Features
+## About the project
 
-- Import monthly Citi Bike CSV files or ZIP archives with schema and data-quality validation.
-- Generate monthly KPI reports and compare adjacent months.
-- Explore station rankings, station trip counts, and supported rider and bike-type breakdowns.
-- Inspect agent progress, tool results, verified report figures, and request traces.
-- Keep accepted datasets and report history in local storage.
+This project explores how an AI agent can turn natural-language questions into reliable reports about bike-sharing activity. It helps users understand how trip volumes change between months, which stations gain or lose trips, and how rider types and bike types contribute to those changes.
 
-The agent selects from a constrained set of analytical tools. Python computes the figures and validates report claims. Requests outside the supported monthly scope, including forecasting, causal explanations, weekly analyses, and median calculations, are refused. Each agent workflow allows at most six LLM calls and ten tool calls.
+Users load public Jersey City Citi Bike trip data and ask questions such as “Compare trip starts at HB107 in July 2026 with August 2026.” The application presents the results as summary cards, charts, and detailed breakdowns, with notes when the data is insufficient for a percentage or comparison.
 
-## Local setup
+The agent selects from a defined set of analytical tools; Python computes the figures and validates report claims against the underlying results. A separate baseline report runs without AI, providing a reference for evaluating the agent's output. The goal is to combine the flexibility of natural-language analysis with reproducible calculations and transparent evidence.
 
-Use Python 3.11 or newer and Node.js 24. Run commands from the repository root unless indicated otherwise.
+## Requirements
 
-### Backend
+- Python 3.14 and Node.js 24 (the versions used for this project).
+- Internet access to install dependencies and retrieve public Citi Bike data.
+- An OpenAI-compatible API key for live model-assisted analysis. Baseline reports, supported queries, and the station comparison example below can run without a key.
+
+Commands below use a macOS/Linux terminal or Windows with WSL. Start from the repository root.
+
+## 1. Set up the backend
 
 ```sh
 python3 -m venv backend/.venv
 source backend/.venv/bin/activate
 python -m pip install -r backend/requirements-dev.txt
 python -m pip install --no-deps -e backend
-python -m uvicorn mobility.app:app --host 127.0.0.1 --port 8000
 ```
 
-For model-assisted planning, set these environment variables before starting the backend:
+For live agent analysis, create a local configuration file if you do not already have one:
 
 ```sh
-export OPENAI_API_KEY='your-api-key'
-export OPENAI_BASE_URL='https://api.openai.com/v1'
-export OPENAI_MODEL='gpt-5-nano'
+cp backend/.env.example backend/.env
 ```
 
-The backend also supports `https://api.portkey.ai/v1`; use a model identifier available through your gateway. Model-assisted requests can send aggregate analytical context to the configured provider. Deterministic reporting does not require a model key. Keep credentials out of source control.
+Edit `backend/.env` and replace the API key placeholder. Keep this file private. The application accepts the public OpenAI API or an OpenAI-compatible gateway URL.
 
-### Frontend
+## 2. Start the application
 
-In a separate terminal:
+Keep both terminals running during the demo.
+
+**Terminal 1 — backend**, from the repository root:
+
+```sh
+source backend/.venv/bin/activate
+python -m uvicorn mobility.app:app --host 127.0.0.1 --port 8000 --env-file backend/.env
+```
+
+For a demo without an API key, omit `--env-file backend/.env`. The backend does not load that file automatically.
+
+**Terminal 2 — frontend**, from the repository root:
 
 ```sh
 cd frontend
@@ -46,47 +56,56 @@ npm ci
 BACKEND_URL=http://127.0.0.1:8000 npm run dev
 ```
 
-Open http://localhost:3000. Backend API documentation is available at http://127.0.0.1:8000/docs.
+Open **http://localhost:3000**. Click **Check connection** and confirm **Backend connected**. API documentation is available at http://127.0.0.1:8000/docs.
 
-## Data and usage
+## 3. Run the demo
 
-Obtain Jersey City monthly files from [Citi Bike system data](https://citibikenyc.com/system-data) and import them through the application. Use the expected `JC-YYYYMM-citibike-tripdata.csv` naming convention. Load adjacent months to enable comparisons, then select the reporting month.
+### Load the data
 
-Example requests:
+1. Set **Reporting month** to **July 2026** and click **Fetch public Citi Bike data**.
+2. Wait for an **accepted** result, then repeat for **August 2026**.
+3. Confirm both months appear under **Available months**. Leave the reporting month set to **August 2026**.
 
-- `Generate the May 2026 report and investigate any qualifying station decline.`
-- `Compare trips started at HB506 in May 2026 with April 2026`
+Alternatively, download the Jersey City files from [Citi Bike system data](https://citibikenyc.com/system-data), choose them under **Select data**, and click **Upload selected files**. Upload one or two CSV/ZIP files at a time, up to 25 MB per file and 50 MB total. Keep filenames such as `JC-202607-citibike-tripdata.csv` or `JC-202607-citibike-tripdata.csv.zip` so the application can identify the month. Datasets are not included in this repository.
 
-These examples require the corresponding months to be loaded. A station absent from the accepted data produces a station-not-found response. Import validation and cleaning can make accepted trip totals differ from raw file totals.
+### Generate a station comparison
 
-Local datasets default to `backend/.local-data`; configure `MOBILITY_DATA_ROOT` to use another location. This repository contains application source and tests. Raw datasets, private evaluation results, human scores, planning documents, and local assistant configuration are excluded.
+Enter this in **Analysis request**, then click **Run agent analysis**:
 
-## Checks
+```text
+Compare trip starts at HB107 in July 2026 with August 2026
+```
+
+The report shows station details, July and August trip totals, absolute change, and rider-type and bike-type breakdowns. Percentages may be withheld when the sample is too small; the report explains why. This supported comparison uses deterministic calculations and does not require an API key.
+
+### Demonstrate the other report options
+
+- **Monthly baseline:** keep August 2026 selected, go to **Baseline report**, and click **Generate baseline report**. This works without an API key.
+- **Live agent:** with a valid API key configured, enter `Generate a standard monthly report for August 2026` and click **Run agent analysis**. Watch the four progress stages and review the generated report.
+- **Report history:** click **Refresh report history** and open a saved report.
+- **Baseline vs Agent (optional):** this separate comparison is fixed to January and February 2026. Load both months, select February 2026, click **Refresh demo months**, then **Run demo comparison**. A valid API key is needed for its live agent component.
+
+## Troubleshooting
+
+- **Backend unavailable:** confirm Terminal 1 is running on port 8000 and the frontend's `BACKEND_URL` matches it.
+- **Missing month or station:** confirm the required datasets were accepted. Station comparisons need both months and a station present in those datasets.
+- **Public data retrieval fails:** download the same Jersey City monthly file and use the upload option.
+- **Agent unavailable or partial:** check the API key, gateway, and model in `backend/.env`, then restart the backend with `--env-file backend/.env`. Baseline reports remain available without a model key.
+
+Accepted datasets and saved reports are stored in `backend/.local-data` and persist across restarts. Press **Ctrl+C** in both terminals to stop the application.
+
+## Optional: run the tests
+
+With the backend environment activated:
 
 ```sh
 cd backend
 python -m pytest
 ```
 
-With the backend environment activated, run frontend checks in another terminal:
+In another terminal, from the repository root:
 
 ```sh
 cd frontend
-npm run typecheck
-npm run lint
-npm run test:coverage
-npm run build
-npx playwright install chromium
-PYTHON=../backend/.venv/bin/python npm run test:e2e
+npm test
 ```
-
-GitHub Actions runs backend coverage, API contract checks, frontend checks, and browser tests.
-
-## Repository layout
-
-- `backend/src/mobility/`: API, ingestion, analytics, agent tools, validation, and storage.
-- `backend/tests/`: backend regression and integration tests.
-- `frontend/`: application interface, API proxies, component tests, and browser tests.
-- `contracts/openapi.json`: shared API contract snapshot.
-
-This application uses local filesystem storage. A deployment must provide suitable persistent storage and access controls for its intended environment.

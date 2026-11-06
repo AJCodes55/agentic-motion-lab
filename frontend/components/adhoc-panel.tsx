@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import WheelButton from './wheel-button';
 
 type Choice = { station_id: string; station_name: string };
 type Result = { status: 'success' | 'needs_station_selection' | 'refused'; message: string; html?: string; station_choices?: Choice[] };
@@ -53,12 +54,12 @@ export default function AdhocPanel({ period, busy }: { period: string; busy: boo
     <p id="adhoc-station-help" className="text-sm">Required for station starts. Ambiguous names require a station selection.</p>
     <label className="mt-3 block"><input type="checkbox" disabled={metric !== 'station_starts'} checked={metric === 'station_starts' && comparison} onChange={event => setComparison(event.target.checked)} /> Compare with previous month</label>
     <label className="mt-3 block"><input type="checkbox" checked={chart} onChange={event => setChart(event.target.checked)} /> Include chart</label>
-    <button type="button" className="mt-4" disabled={!valid || busy || running} onClick={() => void submit()}>{running ? 'Running supported query…' : 'Run supported query'}</button>
+    <WheelButton type="button" className="mt-4" disabled={!valid || busy || running} onAction={() => submit()}>{running ? 'Running supported query…' : 'Run supported query'}</WheelButton>
     {!valid && <p className="mt-3">Select a reporting month and, for station starts, enter a station name or ID.</p>}
     {running && <p role="status" className="mt-3">Calculating supported metrics from the requested dataset…</p>}
     {visible && error && <p role="alert" className="mt-3">{error}</p>}
     {visible && result && <><p role="status" className="mt-3">{result.message}</p>
-      {result.status === 'needs_station_selection' && <ul aria-label="Matching stations">{result.station_choices?.map(choice => <li key={choice.station_id}><button type="button" disabled={busy || running} onClick={() => void submit(choice.station_id)}>{choice.station_name} ({choice.station_id})</button></li>)}</ul>}
+      {result.status === 'needs_station_selection' && <ul aria-label="Matching stations">{result.station_choices?.map(choice => <li key={choice.station_id}><WheelButton type="button" disabled={busy || running} onAction={() => submit(choice.station_id)}>{choice.station_name} ({choice.station_id})</WheelButton></li>)}</ul>}
       {result.status === 'success' && <iframe title={`Supported query report for ${period}`} sandbox="" referrerPolicy="no-referrer" srcDoc={result.html} className="mt-4 min-h-[36rem] w-full border-0" />}
     </>}
   </section>;

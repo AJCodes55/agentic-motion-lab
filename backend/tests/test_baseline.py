@@ -46,6 +46,41 @@ def test_comparison_archive_and_pinned_evidence(tmp_path):
     assert all(item.tool_name != 'analyze_station_variance' for item in report.evidence)
 
 
+def test_baseline_uses_summary_cards_and_rider_bike_panels(tmp_path):
+    store = DatasetStore(tmp_path)
+    ref = publish(store)
+    report = generate_standard_dashboard(store, ref.period)
+    assert 'class="report-kpis"' in report.html
+    assert 'January 2026 trips' in report.html
+    assert '<strong>2</strong>' in report.html
+    assert 'Average duration' in report.html
+    assert '1.5 minutes' in report.html
+    assert 'class="report-panels"' in report.html
+    assert 'Trips by rider type' in report.html
+    assert 'Trips by bike type' in report.html
+    assert 'Member' in report.html and 'Classic' in report.html
+    assert 'Unknown (unclassified)' in report.html
+    assert '1 trips · 50%' in report.html
+    assert report.html.count('<section class="report-panel">') == 5
+
+
+def test_comparison_summary_cards_use_exact_totals_and_change(tmp_path):
+    store = DatasetStore(tmp_path)
+    publish(store)
+    ref = publish(store, month=2)
+    report = generate_standard_dashboard(store, ref.period)
+    assert 'January 2026 trips' in report.html
+    assert 'February 2026 trips' in report.html
+    assert 'Absolute change' in report.html
+    assert '<strong>0 trips</strong>' in report.html
+    assert 'Comparison: January 2026 vs. February 2026' in report.html
+    assert 'Rider type' in report.html and 'Bike type' in report.html
+    assert 'Share withheld. The total did not change.' in report.html
+    assert 'Do not add them together.' in report.html
+    assert 'class="station-dash"' in report.html
+    assert 'N/A' in report.html
+
+
 def test_archive_failure_does_not_publish(tmp_path, monkeypatch):
     import pytest
     import mobility.baseline as baseline
@@ -96,16 +131,22 @@ def test_mover_evidence_keeps_both_counts_delta_and_eligibility(tmp_path):
     result = next(item for item in report.evidence if item.tool_name == 'station_movers')
     values = {(item.period.month, item.metric_type): item.exact_tool_value for item in result.values}
     assert values == {(2, 'current_volume'): 60, (1, 'current_volume'): 120, (2, 'absolute_change'): -60, (2, 'percentage_change'): -50.0}
+    assert 'Trip loss by rider type' in report.html and 'Trip loss by bike type' in report.html
+    assert '<strong>−60 trips (−50.00%)</strong>' in report.html
+    assert 'January 2026 120 · February 2026 60' in report.html
 
 
 def test_report_has_keyboard_scroll_regions_and_column_headers(tmp_path):
     store = DatasetStore(tmp_path)
     ref = publish(store)
     report = generate_standard_dashboard(store, ref.period)
-    assert '<main id="report-content">' in report.html
+    assert '<main id="report-content"' in report.html
     assert '<th scope="col">' in report.html
     assert 'tabindex="0" role="region" aria-label="Scrollable data table"' in report.html
     assert 'overflow-x:auto' in report.html
+    assert 'width:max-content' in report.html
+    assert 'white-space:nowrap' in report.html
+    assert 'grid-column:1 / -1' in report.html
     assert ':focus-visible' in report.html
 
 

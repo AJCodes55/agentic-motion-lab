@@ -22,10 +22,10 @@ for (const outcome of ['partial', 'stream error'] as const) {
     const agent = page.getByRole('region', { name: 'Agent analysis' });
     await expect(agent.getByRole('alert')).toContainText(outcome === 'partial' ? 'The model did not choose the allowed tools.' : 'Service interrupted.');
     const stages = agent.getByRole('list', { name: 'Agent stages' });
-    await expect(stages).toContainText('Data Ingest: complete');
-    await expect(stages).toContainText('Agent Planning: failed');
-    await expect(stages).toContainText('Tool Execution: skipped');
-    await expect(stages).toContainText('Final Report Generation: skipped');
+    await expect(stages.getByRole('listitem').filter({hasText:'Data Ingest'})).toContainText('Complete');
+    await expect(stages.getByRole('listitem').filter({hasText:'Agent Planning'})).toContainText('Failed');
+    await expect(stages.getByRole('listitem').filter({hasText:'Tool Execution'})).toContainText('Skipped');
+    await expect(stages.getByRole('listitem').filter({hasText:'Final Report Generation'})).toContainText('Skipped');
     await expect(stages).not.toContainText('idle');
     await expect(agent.getByText('Agent service returned an invalid report. Retry.')).toHaveCount(0);
   });

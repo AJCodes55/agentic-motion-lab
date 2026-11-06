@@ -9,6 +9,7 @@ from mobility.agent_tools import AgentTools
 from mobility.analytics import CATEGORIES, prior_period
 from mobility.baseline import BaselineReport, generate_standard_dashboard, _table, _report_document, _chart_region
 from mobility.contracts import Contract, DatasetReference, Period, ToolArguments, ToolResult
+from mobility.report_layout import dashboard, kpi_card, panel, segment_panel
 from mobility.storage import DatasetStore
 from mobility.tracing import TraceRecorder
 
@@ -200,21 +201,7 @@ def _station_dashboard(result: ToolResult, period: Period, title: str) -> str:
     panels = ''.join(_segment_panel(values, period, dimension, panel_title, share_name) for dimension, panel_title in (
         ('member_casual', rider_title), ('rideable_type', bike_title)))
     note = f'<span>{escape(percent_note)}</span>' if percent_note else ''
-    return f'''<style>
-    .station-dash{{display:grid;gap:1.25rem}}
-    .station-dash .kpis{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}}
-    .station-dash .kpi,.station-dash .panel{{border:1px solid #e2e8f0;border-radius:8px;padding:1rem;background:#fff}}
-    .station-dash .kpi span,.station-dash .meta{{display:block;color:#425563;font-size:.95rem}}
-    .station-dash .kpi strong{{display:block;font-size:1.75rem;line-height:1.2}}
-    .station-dash .decline strong{{color:#9f1239}}
-    .station-dash .panels{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}}
-    .station-dash ul{{list-style:none;margin:0;padding:0}}
-    .station-dash .seg{{display:grid;gap:.35rem;margin-top:1rem}}
-    .station-dash .seg-top{{display:flex;justify-content:space-between;gap:1rem}}
-    .station-dash .bar{{height:.7rem;background:#eef3f5;border-radius:999px;overflow:hidden}}
-    .station-dash .bar span{{display:block;height:100%}}
-    @media(max-width:700px){{.station-dash .kpis,.station-dash .panels{{grid-template-columns:1fr}}}}
-    </style>
+    return f'''
     <section class="station-dash" aria-label="Station performance">
       {identity}
       <p class="meta">Comparison: {escape(prior_label)} vs. {escape(current_label)}</p>
@@ -260,21 +247,64 @@ def ranking_report(ranking: dict, period: Period, *, variance: ToolResult | None
             notes.append(f'Meets {ranking["minimum_sample"]}-start minimum')
         rows.append((row['rank'], row['station_id'], row['station_name'], row['metric_value'],
                      row['total_starts'], '; '.join(notes)))
-    body = (f'<section aria-label="Station leaderboard"><h2>Station leaderboard</h2><p class="report-note">{escape(meta)}</p>'
-            + _table(('Rank', 'Station ID', 'Station', column, 'Total starts', 'Notes'), rows)
-            + ('<p class="report-note">No station met the ranking rules for this month.</p>' if not rows else '')
-            + '</section>')
+    cards = [kpi_card('Eligible stations', f'{ranking["eligible_station_count"]:,}', label.capitalize()),
+             kpi_card('Stations shown', str(len(rows)), f'{ranking["order"].capitalize()} {ranking["limit"]} requested')]
+    if ranking['minimum_sample'] is not None:
+        cards.append(kpi_card('Minimum sample', f'{ranking["minimum_sample"]:,} starts',
+                              f'{ranking["excluded_low_sample_count"]:,} stations excluded'))
+    else:
+        cards.append(kpi_card('Ranking order', ranking['order'].capitalize(), column))
+    leaderboard = (f'<p class="report-note">{escape(meta)}</p>'
+                   + _table(('Rank', 'Station ID', 'Station', column, 'Total starts', 'Notes'), rows)
+                   + ('<p class="report-note">No station met the ranking rules for this month.</p>' if not rows else ''))
+    body = dashboard(_month_label(period), cards)
+    body += panel('Station leaderboard', leaderboard)
     if chart_svg:
-        body += ('<p class="report-note">Exact values are provided in the table. Scroll the chart horizontally on narrow '
-                 'screens.</p>' + _chart_region(chart_svg))
+        body += panel('Ranking chart', '<p class="report-note">Exact values are provided in the table. '
+                      'Scroll the chart horizontally on narrow screens.</p>' + _chart_region(chart_svg))
     if variance is not None:
         station = variance.arguments.station_id
         name = next((row['station_name'] for row in ranking['rows'] if row['station_id'] == station), station)
-        body += ('<section aria-label="Station comparison"><h2>Station comparison</h2>'
-                 + _station_dashboard(variance, period, f'Station starts: {name} ({station})') + '</section>')
+        body += panel('Station comparison', _station_dashboard(variance, period, f'Station starts: {name} ({station})'))
     if narrative:
-        body += f'<section aria-label="Verified findings"><h2>Verified findings</h2>{narrative}</section>'
+        body += panel('Verified findings', narrative)
     return _report_document(ranking_title(ranking, period), body)
+
+
+_METRIC_LABELS = {
+    'total_trips': 'Total trips',
+    'average_duration': 'Average duration',
+    'station_starts': 'Station starts',
+    'member_share': 'Rider share',
+    'fleet_share': 'Bike share',
+}
+
+
+def _metric_dashboard(result: ToolResult, request: AdhocRequest, chart: str | None) -> str:
+    """Present each verified value without adding calculations or implied comparisons."""
+    cards, segments = [], []
+    for value in result.values:
+        category = (value.category or '').replace('Unknown', 'Unknown (unclassified)')
+        label = f'{category} share' if category else _METRIC_LABELS[request.metric]
+        available = value.eligible and value.exact_tool_value is not None
+        unit = '%' if value.unit == 'percent' else f' {value.unit}'
+        shown = f'{_display(value.exact_tool_value)}{unit}' if available else 'Unavailable'
+        reason = (value.eligibility_reason or '').replace('_', ' ')
+        note = _month_label(value.period) + (f' · {reason}' if reason else '')
+        cards.append(kpi_card(label, shown, note))
+        if category:
+            segments.append((category, shown, value.exact_tool_value if available and value.unit == 'percent' else None))
+    rows = ((f'{v.period.year:04d}-{v.period.month:02d}', (v.category or v.entity_id).replace('Unknown', 'Unknown (unclassified)'),
+             v.metric_type, _display(v.exact_tool_value), v.unit, v.eligibility_reason or '') for v in result.values)
+    panels = []
+    if segments:
+        title = 'Rider type' if request.metric == 'member_share' else 'Bike type'
+        panels.append(segment_panel(title, segments, 'Share of trips in the selected month.'))
+    panels.append(panel('Exact values', _table(('Month', 'Entity / category', 'Metric', 'Value', 'Unit', 'Eligibility reason'), rows)))
+    if chart:
+        panels.append(panel('Metric chart', '<p class="report-note">Exact values are provided in the table. '
+                            'Scroll the chart horizontally on narrow screens.</p>' + _chart_region(chart)))
+    return dashboard(_month_label(request.period), cards, panels)
 
 
 class AdhocService:
@@ -355,10 +385,7 @@ class AdhocService:
         if station_comparison:
             body = _station_dashboard(result, request.period, title)
         else:
-            rows = ((f'{v.period.year:04d}-{v.period.month:02d}', (v.category or v.entity_id).replace('Unknown', 'Unknown (unclassified)'), v.metric_type, _display(v.exact_tool_value), v.unit, v.eligibility_reason or '') for v in values)
-            body = _table(('Month', 'Entity / category', 'Metric', 'Value', 'Unit', 'Eligibility reason'), rows)
-            if chart:
-                body += '<p class="report-note">Exact values are provided in the table. Scroll the chart horizontally on narrow screens.</p>' + _chart_region(chart)
+            body = _metric_dashboard(result, request, chart)
         html = _report_document(title, body)
         output = AdhocResult(status='success', message=title, period=request.period,
             report_id=baseline.report_id, datasets=refs, html=html, evidence=evidence, chart_svg=chart)

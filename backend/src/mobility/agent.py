@@ -18,6 +18,7 @@ from mobility.baseline import BaselineReport, generate_standard_dashboard
 from mobility.contracts import Claim, Contract, DatasetReference, Period, RankStationsArgs, ToolArguments, ToolResult
 from mobility.grounding import GroundingError, ReportDraft, _render_claims, render_verified_claims, validate_draft
 from mobility.llm import ProviderSchemaError
+from mobility.report_layout import panel
 from mobility.storage import DatasetStore
 from mobility.tracing import TraceRecorder
 from mobility.request_scope import _MONTH_NAMES, _station_count_comparison, _unsupported_command, _unsupported_reason
@@ -728,7 +729,8 @@ class AgentService:
             except (GroundingError, ValueError):
                 raise RunGate('ungrounded_claim') from None
             final_ok = True
-            return finish('complete', baseline.html.replace('</body>', narrative + '</body>'), None, None)
+            findings = panel('Verified findings', narrative)
+            return finish('complete', baseline.html.replace('</main>', findings + '</main>'), None, None)
         except RunLimit:
             debug.record('validation', 'run_limit', 'The model or tool call budget was exhausted.', status='failed')
             if ranking_mode:

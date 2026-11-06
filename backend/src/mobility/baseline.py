@@ -1,5 +1,6 @@
 """Fixed, deterministic dashboard and durable self-contained evidence archive."""
 from html import escape
+from calendar import month_name
 import os
 import shutil
 from typing import Literal
@@ -8,6 +9,7 @@ from uuid import uuid4
 from mobility.contracts import Contract, DatasetReference, Period, ToolResult
 from mobility.storage import DatasetStore
 from mobility.tracing import TraceRecorder
+from mobility.report_layout import dashboard, kpi_card, report_document, segment_panel
 
 
 class BaselineReport(Contract):
@@ -95,22 +97,7 @@ def _station_rows(items):
 
 def _report_document(title, body):
     """Self-contained readable report; generated HTML content must already be escaped."""
-    styles = """body{font:16px/1.6 system-ui;max-width:1100px;margin:1rem auto;padding:1rem;color:#172a36;background:#fff}
-    main{min-width:0}h1{font-size:clamp(1.5rem,4vw,2rem);line-height:1.25;overflow-wrap:anywhere}
-    h2{line-height:1.35}section{margin:2rem 0}table{border-collapse:collapse;width:100%;min-width:36rem}
-    th,td{border:1px solid #ccd4da;padding:.65rem;text-align:left;vertical-align:top;overflow-wrap:anywhere}
-    th{background:#eef3f5}tbody tr:nth-child(even){background:#f7fafb}
-    .table-scroll,.chart-scroll{overflow-x:auto;margin:1rem 0;max-width:100%}
-    :focus-visible{outline:3px solid #155e75;outline-offset:3px}
-    svg{display:block;width:100%;min-width:670px;height:auto;font:14px system-ui}
-    .report-note{color:#425563;font-size:.95rem}
-    @media(max-width:600px){body{margin:0;padding:.75rem}th,td{padding:.5rem}}
-    @media print{body{max-width:none;margin:0}.table-scroll,.chart-scroll{overflow:visible}table{min-width:0}svg{min-width:0}}
-    """
-    return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
-            '<meta name="viewport" content="width=device-width, initial-scale=1">'
-            f'<title>{escape(title)}</title><style>{styles}</style></head><body>'
-            f'<main id="report-content"><h1>{escape(title)}</h1>{body}</main></body></html>')
+    return report_document(title, body)
 
 
 def _chart_region(svg):
@@ -118,9 +105,87 @@ def _chart_region(svg):
             + svg + '</div>')
 
 
-def _document(period, sections):
-    body = ''.join(f'<section><h2>{escape(title)}</h2>{content}</section>' for title, content in sections)
+def _document(period, sections, summary=''):
+    body = summary + ''.join(f'<section class="report-panel"><h2>{escape(title)}</h2>{content}</section>' for title, content in sections)
     return _report_document(f'Monthly mobility baseline: {period.year:04d}-{period.month:02d}', body)
+
+
+def _signed(number) -> str:
+    return f'{"−" if number < 0 else ""}{abs(int(number)):,}'
+
+
+def _percent_text(number) -> str:
+    return f'{"−" if number < 0 else ""}{abs(float(number)):.2f}%'
+
+
+def _share_panels(summary, label):
+    return tuple(segment_panel(title, ((_label(item.category), f'{item.count:,} trips · {item.share:g}%', item.share)
+                                       for item in getattr(summary, dimension)), note=f'{label} · Share of trips')
+                 for dimension, title in (('member_casual', 'Trips by rider type'), ('rideable_type', 'Trips by bike type')))
+
+
+def _change_panels(current, prior, total_delta, current_label, prior_label):
+    if total_delta < 0:
+        rider_title, bike_title, share_name = 'Trip loss by rider type', 'Trip loss by bike type', 'Share of lost trips'
+    elif total_delta > 0:
+        rider_title, bike_title, share_name = 'Trip gain by rider type', 'Trip gain by bike type', 'Share of added trips'
+    else:
+        rider_title, bike_title, share_name = 'Rider type', 'Bike type', 'Share of the change'
+    panels = []
+    for dimension, title, categories in (
+            ('member_casual', rider_title, ('Member', 'Casual')),
+            ('rideable_type', bike_title, ('Classic', 'E-bike'))):
+        now = {item.category: item for item in getattr(current, dimension)}
+        before = {item.category: item for item in getattr(prior, dimension)}
+        counts = []
+        for category in categories:
+            current_count = now[category].count if category in now else 0
+            prior_count = before[category].count if category in before else 0
+            counts.append((category, current_count, prior_count, current_count - prior_count))
+        scale = max((abs(delta) for _, _, _, delta in counts), default=0)
+        rows = []
+        for category, current_count, prior_count, delta in counts:
+            if total_delta == 0:
+                share_text = 'Share withheld. The total did not change.'
+            elif prior_count < 100:
+                share_text = 'Share withheld. The previous sample is below 100 trips.'
+            else:
+                share_text = _percent_text(delta / total_delta * 100)
+            width = 0.0 if not scale else min(100.0, abs(delta) / scale * 100)
+            rows.append((_label(category), f'{_signed(delta)} trips · {share_text}', width,
+                         f'{prior_label} {prior_count:,} · {current_label} {current_count:,}'))
+        panels.append(segment_panel(title, rows, note=share_name))
+    return tuple(panels)
+
+
+def _summary_cards(refs, summaries, comparison=None):
+    current = summaries[0]
+    label = f'{month_name[refs[0].period.month]} {refs[0].period.year}'
+    if len(refs) == 2:
+        prior = summaries[1]
+        prior_label = f'{month_name[refs[1].period.month]} {refs[1].period.year}'
+        total = next(metric for metric in comparison.metrics if metric.metric == 'total_trips' and metric.dimension is None)
+        change_text = f'{_signed(total.delta)} trips'
+        note = ''
+        if total.eligible and total.percentage_change is not None:
+            change_text += f' ({_percent_text(total.percentage_change)})'
+        elif total.eligibility_reason == 'prior_sample_below_100':
+            note = 'Share withheld. The previous sample is below 100 trips.'
+        elif total.eligibility_reason == 'zero_prior_value':
+            note = 'Percentage withheld. The previous month has no trips.'
+        else:
+            note = 'Percentage withheld.'
+        cards = (kpi_card(f'{prior_label} trips', f'{prior.total_trips:,}'),
+                 kpi_card(f'{label} trips', f'{current.total_trips:,}'),
+                 kpi_card('Absolute change', change_text, note, 'decline' if total.delta < 0 else ''))
+        panels = _change_panels(current, prior, total.delta, label, prior_label)
+        return dashboard(f'Comparison: {prior_label} vs. {label}', cards, panels,
+                         'Rider type and bike type are separate splits of the same change. Do not add them together.')
+    average = 'Unavailable' if current.average_duration_minutes is None else f'{current.average_duration_minutes:g} minutes'
+    cards = (kpi_card(f'{label} trips', f'{current.total_trips:,}'),
+             kpi_card('Average duration', average),
+             kpi_card('Reporting month', label, 'Prior month unavailable. Standalone report.'))
+    return dashboard(label, cards, _share_panels(current, label))
 
 
 def generate_standard_dashboard(store: DatasetStore, period: Period,
@@ -174,6 +239,7 @@ def generate_standard_dashboard(store: DatasetStore, period: Period,
     score_rows = [(f'{ref.period.year:04d}-{ref.period.month:02d}', summary.total_trips, summary.average_duration_minutes) for ref, summary in zip(refs, summaries)]
     score = _table(('Month', 'Total trips', 'Average duration (minutes)'), score_rows)
     score += ''.join(f'<h3>{dimension.replace("_", " ")}</h3>' + _table(('Category', 'Trips', 'Share (%)'), ((_label(item.category), item.count, item.share) for item in getattr(summaries[0], dimension))) for dimension in ('member_casual', 'rideable_type'))
+    comparison = None
     if len(refs) == 2:
         comparison = calculate('compare_periods', *refs)
         change_values = []
@@ -221,7 +287,9 @@ def generate_standard_dashboard(store: DatasetStore, period: Period,
     daily = _chart_region(assets['daily.svg']) + '<p>Absent calendar days are gaps, never zero. Exact daily starts:</p>'
     daily += _table(('Month', 'Day of month', 'Starts'), ((f'{ref.period.year:04d}-{ref.period.month:02d}', day.day, day.count) for ref, trend in zip(refs, trends) for day in trend.days))
     sections = (('KPI Scorecard', score), ('Daily Trend', daily), ('Mix Breakdowns', mix), ('Top Stations / Movers', station_html), ('Data-Quality Summary', _quality(store, refs)))
-    report = BaselineReport(report_id=report_id, period=period, datasets=refs, html=_document(period, sections), evidence=tuple(evidence))
+    report = BaselineReport(report_id=report_id, period=period, datasets=refs,
+                            html=_document(period, sections, _summary_cards(refs, summaries, comparison)),
+                            evidence=tuple(evidence))
     _archive(store, report, assets)
     trace.record('baseline', 'baseline_rendering', 'Application rendered and archived the standard baseline.',
                  output={'report_id': report.report_id})

@@ -73,3 +73,6 @@
 
 # The public project guide is the only Markdown publication exception.
 !/README.md
+
+# Placeholder configuration only. Real keys stay in the ignored backend/.env file.
+!/backend/.env.example

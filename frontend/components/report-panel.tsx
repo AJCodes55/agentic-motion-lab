@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import WheelButton from './wheel-button';
 
 export default function ReportPanel({ period, busy }: { period: string; busy: boolean }) {
   const [running, setRunning] = useState(false);
@@ -29,7 +30,7 @@ export default function ReportPanel({ period, busy }: { period: string; busy: bo
   return <section id="baseline" aria-labelledby="report-heading" className="panel mt-6">
     <h2 id="report-heading">Report</h2>
     <p className="mt-2 text-sm text-slate-700">Generate the standard monthly baseline from the selected month’s active dataset. No AI calls are used.</p>
-    <button type="button" className="mt-4" disabled={!validPeriod || busy || running} onClick={() => void generate()}>{running ? 'Generating baseline report…' : 'Generate baseline report'}</button>
+    <WheelButton type="button" className="mt-4" disabled={!validPeriod || busy || running} onAction={generate}>{running ? 'Generating baseline report…' : 'Generate baseline report'}</WheelButton>
     {!validPeriod && <p className="mt-3">Select a reporting month above, then load its data to generate a report.</p>}
     {running && requestPeriod === period && <p role="status">Computing verified monthly metrics…</p>}
     {error && requestPeriod === period && <p role="alert">{error}</p>}

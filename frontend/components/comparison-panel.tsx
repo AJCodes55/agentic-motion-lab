@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import WheelButton from './wheel-button';
 import type { components } from '../src/generated/api';
 
 type Trace = components['schemas']['ToolResult'];
@@ -128,9 +129,9 @@ function ComparisonSession({period, busy}: {period: string; busy: boolean}) {
     <h2 id="comparison-heading">Baseline vs Agent</h2>
     <p>Fixed demo: January and February 2026, with February as reporting month. Both accepted datasets are required before model dispatch.</p>
     <p className="mt-2 text-sm">One shared pinned snapshot feeds independent Python calculations and the configured live agent. The combined station ranking and agent investigation have different scopes.</p>
-    <button type="button" className="mt-4" disabled={period !== '2026-02' || !monthsReady || busy || running} onClick={() => void compare()}>{running && visible ? 'Running demo comparison…' : 'Run demo comparison'}</button>
+    <WheelButton type="button" className="mt-4" disabled={period !== '2026-02' || !monthsReady || busy || running} onAction={compare}>{running && visible ? 'Running demo comparison…' : 'Run demo comparison'}</WheelButton>
     <p className="mt-2 text-sm">{monthsMessage}</p>
-    <button type="button" className="mt-2" disabled={busy || running} onClick={() => {setMonthsReady(false); setMonthsMessage('Checking accepted demo months…'); setRefresh(value => value + 1);}}>Refresh demo months</button>
+    <WheelButton type="button" className="mt-2" busy={monthsMessage === 'Checking accepted demo months…' && !busy} disabled={busy || running} onClick={() => {setMonthsReady(false); setMonthsMessage('Checking accepted demo months…'); setRefresh(value => value + 1);}}>Refresh demo months</WheelButton>
     {period !== '2026-02' && <p className="mt-2">Select February 2026 above to run the demo.</p>}
     {visible && running && <p role="status" className="mt-3">{progress}</p>}
     {visible && error && <p role="alert" className="mt-3">{error}</p>}

@@ -93,6 +93,8 @@ def test_comparative_follow_up_and_no_raw_rows_in_prompts(tmp_path):
     assert all('ride_id' not in str(payload) and 'started_at' not in str(payload) for _, payload in model.payloads)
     assert [name for name, _ in model.payloads] == ['RequestIntent', 'AnalysisPlan', 'FollowUp']
     assert 'S member casual in 2026-02: Driven entirely by Member.' in result.report_html
+    assert '<div class="report-panel"><h2>Verified findings</h2>' in result.report_html
+    assert result.report_html.index('Verified findings') < result.report_html.index('</main>')
 
 
 def test_malformed_route_retries_once_then_schema_fallback(tmp_path):

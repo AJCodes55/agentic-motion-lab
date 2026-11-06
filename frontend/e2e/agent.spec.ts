@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('runs an agent request and exposes the adaptive aggregate follow-up', async ({ page }) => {
+test('runs an agent request and presents the report without completed tool activity', async ({ page }) => {
   await page.route('**/api/health', route => route.fulfill({ json: { success: true, data: { status: 'ok' } } }));
   await page.route('**/api/agent-runs/stream', async route => {
     const payload = route.request().postDataJSON();
@@ -24,9 +24,10 @@ test('runs an agent request and exposes the adaptive aggregate follow-up', async
   await page.getByLabel('Analysis request').fill('Investigate declining stations');
   await page.getByRole('button', { name: 'Run agent analysis' }).click();
   await expect(page.getByText('Agent report ready for 2026-02.')).toBeVisible();
-  await expect(page.getByText('Station change breakdown')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Agent tool activity' })).toHaveCount(0);
+  await expect(page.getByText('Exact tool identity and inputs')).toHaveCount(0);
   await expect(page.getByText('Mandatory investigation candidate: HB106')).toBeVisible();
-  await expect(page.getByText('member casual · Casual: 30.36%')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Variance breakdowns' })).toHaveCount(0);
   await expect(page.frameLocator('iframe[title="Agent report for 2026-02"]').getByRole('heading', { name: 'Verified report' })).toBeVisible();
 });
 

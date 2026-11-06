@@ -8,6 +8,8 @@ import AdhocPanel from './adhoc-panel';
 import ComparisonPanel from './comparison-panel';
 import HistoryPanel from './history-panel';
 import TracePanel, { type QueryTrace } from './trace-panel';
+import MobilityWheel from './mobility-wheel';
+import WheelButton from './wheel-button';
 import { useEffect, useRef, useState } from 'react';
 
 export default function Dashboard() {
@@ -15,6 +17,7 @@ export default function Dashboard() {
   const [connection, setConnection] = useState('Checking backend…');
   const [checking, setChecking] = useState(true);
   const [ingesting, setIngesting] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [period, setPeriod] = useState('');
   const [command, setCommand] = useState('');
   const [agentRunning, setAgentRunning] = useState(false);
@@ -44,20 +47,27 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+    <>
+    <div className="page-wheel-frame" aria-hidden="true"><MobilityWheel variant="page" active={agentRunning} /></div>
+    <main className="workspace mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
       <a href="#request-heading" className="skip-link">Skip to reporting controls</a>
-      <header className="mb-8">
-        <p className="text-sm font-semibold uppercase tracking-widest text-teal-800">Citi Bike · Jersey City</p>
-        <h1 className="mt-2 text-3xl font-bold">Mobility reporting workspace</h1>
-        <p className="mt-3 text-slate-700">Upload monthly data or fetch it from public Citi Bike S3.</p>
+      <header className="workspace-hero mb-6">
+        <div className="hero-copy">
+          <p className="hero-eyebrow">Citi Bike · Jersey City</p>
+          <h1>Mobility reporting workspace</h1>
+          <p className="hero-description">Upload monthly data or fetch it from public Citi Bike S3.</p>
+          <div className="hero-footer">
+            <p className="hero-caption">Monthly data. Verified insights.</p>
+          </div>
+        </div>
       </header>
       <nav aria-label="Workspace sections" className="workspace-nav mb-6"><a href="#data">Data</a><a href="#request-heading">Reporting month</a><a href="#agent">Agent analysis</a><a href="#comparison">Baseline vs Agent</a><a href="#queries">Supported queries</a><a href="#baseline">Baseline report</a><a href="#history">Report history</a></nav>
       <section aria-labelledby="service-heading" className="panel mb-6 flex flex-wrap items-center justify-between gap-4">
         <div><h2 id="service-heading">Service connection</h2><p role="status" aria-live="polite">{connection}</p></div>
-        <button type="button" onClick={() => { setChecking(true); setConnection('Checking backend…'); void checkConnection(); }} disabled={checking}>Check connection</button>
+        <WheelButton type="button" busy={checking} onClick={() => { setChecking(true); setConnection('Checking backend…'); void checkConnection(); }} disabled={checking}>Check connection</WheelButton>
       </section>
       <div className="grid gap-6 md:grid-cols-2">
-        <UploadPanel period={period} onBusy={setIngesting} fetchFormId="public-data-fetch" />
+        <UploadPanel period={period} onBusy={setIngesting} onFetching={setFetching} fetchFormId="public-data-fetch" />
         <section aria-labelledby="request-heading" className="panel">
           <h2 id="request-heading" tabIndex={-1}>2. Describe the report</h2>
           <label htmlFor="period" className="mt-4 block font-medium">Reporting month</label>
@@ -67,8 +77,8 @@ export default function Dashboard() {
           <textarea aria-describedby="command-help" id="command" value={command} onChange={event => setCommand(event.target.value)} rows={3} placeholder="Describe the metrics and stations to explore" maxLength={2000} />
           <p id="command-help" className="mt-2 text-sm text-slate-700">Ask the agent to investigate verified monthly or station trends. Each request stands alone; previous analytical requests are not retained.</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button type="button" disabled={!canRunAgent} onClick={() => setRunToken(value => value + 1)}>{agentRunning ? 'Running agent analysis…' : 'Run agent analysis'}</button>
-          <button type="submit" form="public-data-fetch" disabled={ingesting || !period}>Fetch public Citi Bike data</button>
+          <WheelButton type="button" busy={agentRunning} disabled={!canRunAgent} onClick={() => setRunToken(value => value + 1)}>{agentRunning ? 'Running agent analysis…' : 'Run agent analysis'}</WheelButton>
+          <WheelButton type="submit" busy={fetching} form="public-data-fetch" disabled={ingesting || !period}>Fetch public Citi Bike data</WheelButton>
           </div>
         </section>
       </div>
@@ -79,5 +89,6 @@ export default function Dashboard() {
       <HistoryPanel />
       {queryTrace && <TracePanel trace={queryTrace} />}
     </main>
+    </>
   );
 }

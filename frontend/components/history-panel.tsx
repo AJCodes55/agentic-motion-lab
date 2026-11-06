@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import WheelButton from './wheel-button';
 
 type Entry = { report_id: string; report_kind: 'baseline' | 'agent' | 'adhoc'; status: string; period: { year: number; month: number } };
 const monthLabel = (entry: Entry) => `${new Intl.DateTimeFormat('en-US', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, entry.period.month - 1)))} ${entry.period.year}`;
@@ -39,12 +40,12 @@ export default function HistoryPanel() {
   return <section id="history" aria-labelledby="history-heading" className="panel mt-6">
     <h2 id="history-heading">Report history</h2>
     <p className="mt-2 text-sm text-slate-700">Open a saved report with its original dataset evidence, even after a corrected upload.</p>
-    <button type="button" className="mt-4" disabled={loading} onClick={() => void refresh()}>Refresh report history</button>
+    <WheelButton type="button" className="mt-4" disabled={loading} onAction={refresh}>Refresh report history</WheelButton>
     {reports === null && !loading && <p className="mt-3">Refresh history to browse saved reports.</p>}
     {loading && <p role="status">Loading archived reports…</p>}
     {error && <p role="alert" className="mt-3">{error}</p>}
     {reports?.length === 0 && <p className="mt-3">No archived reports yet.</p>}
-    {reports && reports.length > 0 && <ul className="mt-3 divide-y divide-slate-200">{reports.map(entry => <li className="flex flex-wrap items-baseline gap-x-3 py-1" key={`${entry.report_kind}-${entry.report_id}`}><button type="button" className="report-title" disabled={loading} onClick={() => void open(entry)}>{monthLabel(entry)} — {kindLabel[entry.report_kind]} report</button> <span className="text-sm capitalize text-slate-600">{entry.status}</span></li>)}</ul>}
+    {reports && reports.length > 0 && <ul className="mt-3 divide-y divide-slate-200">{reports.map(entry => <li className="flex flex-wrap items-baseline gap-x-3 py-1" key={`${entry.report_kind}-${entry.report_id}`}><WheelButton type="button" className="report-title" disabled={loading} onAction={() => open(entry)}>{monthLabel(entry)} — {kindLabel[entry.report_kind]} report</WheelButton> <span className="text-sm capitalize text-slate-600">{entry.status}</span></li>)}</ul>}
     {archive && <p role="status" className="mt-3">Archived report ready with its original saved evidence.</p>}
     {archive && <iframe title={`Archived report ${archive.id}`} sandbox="" referrerPolicy="no-referrer" srcDoc={archive.html} className="mt-4 min-h-[36rem] w-full border-0" />}
   </section>;

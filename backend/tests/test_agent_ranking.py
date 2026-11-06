@@ -320,3 +320,17 @@ def test_automatic_comparison_tool_failure_stays_partial(tmp_path, monkeypatch):
     assert 'comparison tool failed' in result.warning
     assert 'Station comparison' not in result.report_html
     assert 'Station leaderboard' in result.report_html
+
+
+def test_ranking_report_uses_summary_cards_and_detail_panels(tmp_path):
+    store = DatasetStore(tmp_path)
+    version(store, 2, {'A': 150, 'B': 120, 'C': 1})
+    model = FakeModel([{'kind': 'station_ranking'}, rank_step('ebike_share_pct', 'top', 5)])
+    result = AgentService(store, model).run(FEB, 'Top 5 stations by e-bike share in February 2026')
+    assert result.status == 'complete'
+    assert 'class="report-kpis"' in result.report_html
+    assert 'Eligible stations' in result.report_html
+    assert 'Stations shown' in result.report_html
+    assert 'Minimum sample' in result.report_html
+    assert 'Station leaderboard' in result.report_html
+    assert 'Verified findings' in result.report_html

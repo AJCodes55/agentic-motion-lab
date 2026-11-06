@@ -160,7 +160,32 @@ def test_adhoc_report_shares_responsive_accessible_document(tmp_path):
     ref = fixture(store, 2, {'S': 2})
     result = AdhocService(store).run(AdhocRequest(period=ref.period, metric='total_trips', chart=True))
     assert 'name="viewport"' in result.html
-    assert '<main id="report-content">' in result.html
+    assert '<main id="report-content" class="report-dashboard">' in result.html
     assert '<th scope="col">' in result.html
     assert 'tabindex="0" role="region" aria-label="Scrollable chart"' in result.html
     assert 'Exact values are provided in the table' in result.html
+
+
+@pytest.mark.parametrize('metric,label', [('total_trips', 'Total trips'), ('average_duration', 'Average duration')])
+def test_scalar_reports_use_summary_cards_and_evidence_panel(tmp_path, metric, label):
+    store = DatasetStore(tmp_path)
+    ref = fixture(store, 2, {'S': 120})
+    report = AdhocService(store).run(AdhocRequest(period=ref.period, metric=metric))
+    assert report.status == 'success'
+    assert 'class="report-kpis"' in report.html
+    assert label in report.html
+    assert 'Exact values' in report.html
+    assert 'February 2026' in report.html
+    assert 'Entity / category' in report.html
+
+
+@pytest.mark.parametrize('metric,title', [('member_share', 'Rider type'), ('fleet_share', 'Bike type')])
+def test_share_reports_use_category_cards_and_bars(tmp_path, metric, title):
+    store = DatasetStore(tmp_path)
+    ref = fixture(store, 2, {'S': 120})
+    report = AdhocService(store).run(AdhocRequest(period=ref.period, metric=metric))
+    assert report.status == 'success'
+    assert 'class="report-kpis"' in report.html
+    assert title in report.html
+    assert 'class="report-bar"' in report.html
+    assert 'Exact values' in report.html

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import WheelButton from './wheel-button';
 import type { components } from '../src/generated/api';
 type Dataset = components['schemas']['DatasetReference'];
 type Result = components['schemas']['MonthIngestionResult'];
@@ -7,7 +8,7 @@ const monthLabel = (period: {year:number;month:number}) => `${period.year}-${Str
 const monthName = (period: {year:number;month:number}) => `${['January','February','March','April','May','June','July','August','September','October','November','December'][period.month-1]} ${period.year}`;
 const exclusions = ['invalid_timestamp_rows','outside_month_rows','duplicate_rows','missing_station_rows','invalid_duration_rows'] as const;
 
-export default function UploadPanel({period,onBusy,fetchFormId}:{period:string;onBusy:(busy:boolean)=>void;fetchFormId?:string}) {
+export default function UploadPanel({period,onBusy,onFetching,fetchFormId}:{period:string;onBusy:(busy:boolean)=>void;onFetching?:(busy:boolean)=>void;fetchFormId?:string}) {
   const [files,setFiles]=useState<File[]>([]);
   const [error,setError]=useState('');
   const [periodError,setPeriodError]=useState('');
@@ -36,6 +37,7 @@ export default function UploadPanel({period,onBusy,fetchFormId}:{period:string;o
   }
   async function ingest(source:'upload'|'fetch') {
     setBusy(true);onBusy(true);setError('');setResults([]);
+    if(source==='fetch') onFetching?.(true);
     try {
       const form=new FormData();files.forEach(file=>form.append('files',file));
       const [year,month]=period.split('-').map(Number);
@@ -44,7 +46,7 @@ export default function UploadPanel({period,onBusy,fetchFormId}:{period:string;o
       if(!response.ok||!body.success||!Array.isArray(body.data?.results)) throw new Error(body.error?.message || 'Ingestion failed. Retry after checking the data service.');
       setResults(body.data.results);await loadPeriods();
     } catch(error) {setError(error instanceof Error?error.message:'Ingestion failed.');}
-    finally {setBusy(false);onBusy(false);}
+    finally {setBusy(false);onBusy(false);if(source==='fetch') onFetching?.(false);}
   }
   async function remove(dataset: Dataset) {
     const name = monthName(dataset.period);
@@ -66,10 +68,10 @@ export default function UploadPanel({period,onBusy,fetchFormId}:{period:string;o
       <input id="data-files" type="file" accept=".csv,.zip" multiple disabled={busy} aria-describedby="upload-help" onChange={event=>chooseFiles(event.target.files)}/>
     </div>
     {files.length>0&&<ul aria-label="Selected files">{files.map((file,index)=><li key={`${file.name}-${index}`}>{file.name}</li>)}</ul>}
-    <button type="button" disabled={busy||files.length===0} onClick={()=>void ingest('upload')}>Upload selected files</button>
+    <WheelButton type="button" disabled={busy||files.length===0} onAction={()=>ingest('upload')}>Upload selected files</WheelButton>
     {fetchFormId ? <form id={fetchFormId} onSubmit={event=>{event.preventDefault();if(!busy&&period)void ingest('fetch');}} /> : <>
       <p className="my-3 text-sm">Or fetch the explicitly selected reporting month from public Citi Bike S3.</p>
-      <button type="button" disabled={busy||!period} onClick={()=>void ingest('fetch')}>Fetch public Citi Bike data</button>
+      <WheelButton type="button" disabled={busy||!period} onAction={()=>ingest('fetch')}>Fetch public Citi Bike data</WheelButton>
     </>}
     {busy&&<p role="status">Validating and loading data…</p>}
     {error&&<p role="alert" className="text-red-800">{error}</p>}
@@ -92,6 +94,6 @@ export default function UploadPanel({period,onBusy,fetchFormId}:{period:string;o
     </article>)}
     <h3 className="mt-4 font-semibold">Available months</h3>
     {loadingPeriods?<p role="status">Loading available months…</p>:periodError?<p role="status">{periodError}</p>:periods.length===0?<p>No accepted datasets available.</p>:<ul aria-label="Available months">{periods.map(dataset=><li key={dataset.version_id} className="flex items-center gap-2 py-1">{monthName(dataset.period)} <button type="button" className="remove-month" aria-label={`Remove ${monthName(dataset.period)}`} title={`Remove ${monthName(dataset.period)}`} disabled={busy} onClick={()=>void remove(dataset)}><svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="m3 3 6 6M9 3 3 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></li>)}</ul>}
-    <button type="button" className="mt-3" disabled={busy||loadingPeriods} onClick={()=>void loadPeriods()}>Refresh available months</button>
+    <WheelButton type="button" className="mt-3" disabled={busy||loadingPeriods} onAction={()=>loadPeriods()}>Refresh available months</WheelButton>
   </section>;
 }
