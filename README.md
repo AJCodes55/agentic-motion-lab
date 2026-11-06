@@ -16,6 +16,8 @@ The agent selects from a defined set of analytical tools; Python computes the fi
 - Internet access to install dependencies and retrieve public Citi Bike data.
 - An OpenAI-compatible API key for live model-assisted analysis. Baseline reports, supported queries, and the station comparison example below can run without a key.
 
+Python packages are listed in `backend/requirements-dev.txt` and `backend/pyproject.toml`. Frontend packages are listed in `frontend/package.json`.
+
 Commands below use a macOS/Linux terminal or Windows with WSL. Start from the repository root.
 
 ## 1. Set up the backend
